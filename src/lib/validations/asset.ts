@@ -18,6 +18,9 @@ export const ASSIGNED_SLOTS = [
   "SECTION_BG",
   "POSTER_FALLBACK",
   "CANVAS_HERO_SEQUENCE",
+  "THREE_D_HERO_MODEL",
+  "THREE_D_SHOWCASE_MODEL",
+  "THREE_D_ENVIRONMENT_MAP",
 ] as const;
 
 export const ALLOWED_MIME_TYPES: Record<string, string[]> = {

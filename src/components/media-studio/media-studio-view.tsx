@@ -22,12 +22,14 @@ import {
   Play,
   RefreshCw,
   SlidersHorizontal,
+  Box,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { formatBytes, formatDate } from "@/lib/utils";
 import { CanvasFrameSequence } from "@/components/cinematic/CanvasFrameSequence";
+import { ModelViewer3D } from "@/components/three-d";
 
 interface Asset {
   id: string;
@@ -89,6 +91,9 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
 
   // Preview Frame Sequence Modal state
   const [previewSequenceAsset, setPreviewSequenceAsset] = useState<Asset | null>(null);
+
+  // Preview 3D Model Modal state
+  const [previewModelAsset, setPreviewModelAsset] = useState<Asset | null>(null);
 
   // Before / After preview slider state
   const [sliderPosition, setSliderPosition] = useState(50);
@@ -169,7 +174,16 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
       }
 
       // Update state: if exclusive slot, clear it from other assets
-      const exclusiveSlots = ["HERO_BACKGROUND", "BEFORE_SLOT", "AFTER_SLOT", "POSTER_FALLBACK", "CANVAS_HERO_SEQUENCE"];
+      const exclusiveSlots = [
+        "HERO_BACKGROUND",
+        "BEFORE_SLOT",
+        "AFTER_SLOT",
+        "POSTER_FALLBACK",
+        "CANVAS_HERO_SEQUENCE",
+        "THREE_D_HERO_MODEL",
+        "THREE_D_SHOWCASE_MODEL",
+        "THREE_D_ENVIRONMENT_MAP",
+      ];
       setAssets((prev) =>
         prev.map((a) => {
           if (a.id === assetId) {
@@ -371,6 +385,7 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
                   if (e.target.value === "BEFORE_IMAGE") setUploadSlot("BEFORE_SLOT");
                   else if (e.target.value === "AFTER_IMAGE") setUploadSlot("AFTER_SLOT");
                   else if (e.target.value === "POSTER") setUploadSlot("POSTER_FALLBACK");
+                  else if (e.target.value === "MODEL_3D") setUploadSlot("THREE_D_HERO_MODEL");
                 }}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
               >
@@ -393,6 +408,9 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
               >
                 <option value="">Unassigned (General Library)</option>
                 <option value="HERO_BACKGROUND">Hero Section Background</option>
+                <option value="THREE_D_HERO_MODEL">3D Hero Model Slot</option>
+                <option value="THREE_D_SHOWCASE_MODEL">3D Showcase Model Slot</option>
+                <option value="THREE_D_ENVIRONMENT_MAP">3D Environment Map</option>
                 <option value="BEFORE_SLOT">Transformation • Before Slot</option>
                 <option value="AFTER_SLOT">Transformation • After Slot</option>
                 <option value="GALLERY">Project Gallery Collection</option>
@@ -673,9 +691,23 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
                       </span>
                     </div>
                   ) : asset.assetType === "MODEL_3D" ? (
-                    <div className="flex flex-col items-center justify-center text-indigo-400 gap-2">
-                      <FileBox className="h-12 w-12" />
-                      <span className="text-xs font-mono">3D Mesh File</span>
+                    <div className="flex flex-col items-center justify-center text-cyan-400 gap-2 p-4 text-center">
+                      <Box className="h-10 w-10 text-cyan-400 animate-bounce" />
+                      <span className="text-xs font-mono font-bold text-white">Three.js 3D Asset</span>
+                      <span className="text-[10px] text-cyan-300 font-mono">
+                        {(() => {
+                          try {
+                            const meta = JSON.parse(asset.metadataJson);
+                            const parts = [];
+                            if (meta.format) parts.push(meta.format);
+                            if (meta.meshCount !== undefined) parts.push(`${meta.meshCount} meshes`);
+                            if (meta.dracoCompressed) parts.push("Draco");
+                            return parts.length > 0 ? parts.join(" • ") : "glTF / GLB Binary";
+                          } catch {
+                            return "glTF / GLB Binary";
+                          }
+                        })()}
+                      </span>
                     </div>
                   ) : (
                     <img
@@ -755,6 +787,21 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
                     </div>
                   )}
 
+                  {/* 3D Model Preview Action */}
+                  {asset.assetType === "MODEL_3D" && (
+                    <div className="pt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setPreviewModelAsset(asset)}
+                        className="w-full text-xs font-medium text-cyan-300 border-cyan-800/80 bg-cyan-950/40 hover:bg-cyan-900/60 gap-1.5"
+                      >
+                        <Box className="h-3.5 w-3.5" />
+                        <span>Interactive 3D Preview</span>
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Slot Assignment Selector */}
                   <div className="pt-3 border-t border-slate-800/80 space-y-2">
                     <div className="flex items-center justify-between gap-2">
@@ -766,6 +813,9 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
                       >
                         <option value="">Unassigned</option>
                         <option value="HERO_BACKGROUND">Hero Background</option>
+                        <option value="THREE_D_HERO_MODEL">3D Hero Model</option>
+                        <option value="THREE_D_SHOWCASE_MODEL">3D Showcase Model</option>
+                        <option value="THREE_D_ENVIRONMENT_MAP">3D Environment Map</option>
                         <option value="CANVAS_HERO_SEQUENCE">Canvas Hero Sequence</option>
                         <option value="BEFORE_SLOT">Before Slot</option>
                         <option value="AFTER_SLOT">After Slot</option>
@@ -1059,6 +1109,58 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
               >
                 <Check className="h-3.5 w-3.5" />
                 <span>Assign to Hero Canvas</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Interactive 3D Model Preview Modal */}
+      <Modal
+        isOpen={!!previewModelAsset}
+        onClose={() => setPreviewModelAsset(null)}
+        title={`Interactive 3D Model: ${previewModelAsset?.name || "Viewer"}`}
+        description="Inspect the real GLTF/GLB geometry, materials, wireframe mode, and lighting presets."
+        maxWidth="lg"
+      >
+        <div className="space-y-4">
+          {previewModelAsset && (
+            <div>
+              <div className="h-96 w-full rounded-2xl overflow-hidden border border-slate-800 shadow-2xl relative bg-slate-950">
+                <ModelViewer3D
+                  modelUrl={previewModelAsset.fileUrl}
+                  modelName={previewModelAsset.name}
+                  height="100%"
+                />
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-slate-400 font-mono">
+                <span>
+                  File: {previewModelAsset.fileName} ({formatBytes(previewModelAsset.fileSize)})
+                </span>
+                <span className="text-cyan-400 font-bold">Three.js WebGL • Orbit Controls</span>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPreviewModelAsset(null)}
+            >
+              Close Preview
+            </Button>
+            {previewModelAsset && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  handleSlotAssignment(previewModelAsset.id, "THREE_D_HERO_MODEL");
+                  setPreviewModelAsset(null);
+                }}
+                className="bg-cyan-600 hover:bg-cyan-500 text-white gap-1.5"
+              >
+                <Check className="h-3.5 w-3.5" />
+                <span>Assign to 3D Hero Slot</span>
               </Button>
             )}
           </div>

@@ -8,6 +8,7 @@ import {
   ASSET_TYPES,
   ASSIGNED_SLOTS,
 } from "@/lib/validations/asset";
+import { ModelAssetValidator } from "@/modules/three-d/assets/validator";
 
 export async function GET(
   _req: NextRequest,
@@ -124,6 +125,31 @@ export async function POST(
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // Deep server-side validation for 3D models (GLB container headers, GLTF schema, security checks)
+    let modelMetadata: Record<string, any> = {};
+    if (assetType === "MODEL_3D") {
+      const validation = ModelAssetValidator.validate(buffer, ext);
+      if (!validation.valid) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: validation.error || "Invalid 3D model file",
+          },
+          { status: 400 }
+        );
+      }
+      modelMetadata = {
+        format: validation.format,
+        version: validation.version,
+        meshCount: validation.meshCount,
+        materialCount: validation.materialCount,
+        animationCount: validation.animationCount,
+        textureCount: validation.textureCount,
+        dracoCompressed: validation.dracoCompressed,
+        extensionsUsed: validation.extensionsUsed,
+      };
+    }
+
     // Sanitize filename and create unique storage path
     const sanitizedOriginal = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
     const uniqueFileName = `${Date.now()}-${sanitizedOriginal}`;
@@ -135,7 +161,15 @@ export async function POST(
 
     try {
       // If exclusive slot is specified, unassign existing assets for that slot in this project
-      const exclusiveSlots = ["HERO_BACKGROUND", "BEFORE_SLOT", "AFTER_SLOT", "POSTER_FALLBACK"];
+      const exclusiveSlots = [
+        "HERO_BACKGROUND",
+        "BEFORE_SLOT",
+        "AFTER_SLOT",
+        "POSTER_FALLBACK",
+        "THREE_D_HERO_MODEL",
+        "THREE_D_SHOWCASE_MODEL",
+        "THREE_D_ENVIRONMENT_MAP",
+      ];
       if (assignedSlot && exclusiveSlots.includes(assignedSlot)) {
         await db.projectAsset.updateMany({
           where: { projectId, assignedSlot },
@@ -151,13 +185,14 @@ export async function POST(
           fileName: uniqueFileName,
           fileUrl: stored.url,
           filePath: stored.filePath,
-          mimeType: file.type || "application/octet-stream",
+          mimeType: file.type || (ext === "glb" ? "model/gltf-binary" : "model/gltf+json"),
           fileSize: file.size,
           assetType,
           assignedSlot,
           metadataJson: JSON.stringify({
             originalName: file.name,
             lastModified: file.lastModified,
+            ...modelMetadata,
           }),
         },
       });
