@@ -27,6 +27,15 @@ export const ALLOWED_MIME_TYPES: Record<string, string[]> = {
   MODEL_3D: ["model/gltf-binary", "model/gltf+json", "application/octet-stream"],
 };
 
+export const ALLOWED_EXTENSIONS: Record<string, string[]> = {
+  IMAGE: ["jpg", "jpeg", "png", "webp", "svg", "gif"],
+  VIDEO: ["mp4", "webm"],
+  POSTER: ["jpg", "jpeg", "png", "webp"],
+  BEFORE_IMAGE: ["jpg", "jpeg", "png", "webp"],
+  AFTER_IMAGE: ["jpg", "jpeg", "png", "webp"],
+  MODEL_3D: ["glb", "gltf"],
+};
+
 export const MAX_FILE_SIZES: Record<string, number> = {
   IMAGE: 15 * 1024 * 1024, // 15MB
   VIDEO: 100 * 1024 * 1024, // 100MB
@@ -44,3 +53,4 @@ export const assetUpdateSchema = z.object({
 });
 
 export type AssetUpdateInput = z.infer<typeof assetUpdateSchema>;
+

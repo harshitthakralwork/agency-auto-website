@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { storage } from "@/lib/storage/local-adapter";
 import {
   ALLOWED_MIME_TYPES,
+  ALLOWED_EXTENSIONS,
   MAX_FILE_SIZES,
   ASSET_TYPES,
   ASSIGNED_SLOTS,
@@ -81,22 +82,29 @@ export async function POST(
         ? requestedSlot
         : null;
 
+    // Validate file extension against strict whitelist for assetType
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const allowedExts = ALLOWED_EXTENSIONS[assetType] || [];
+    if (!ext || !allowedExts.includes(ext)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Invalid file extension ".${ext}". Allowed extensions for ${assetType}: ${allowedExts.map((e) => `.${e}`).join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
+
     // Validate MIME type
     const allowedMimes = ALLOWED_MIME_TYPES[assetType] || [];
     if (allowedMimes.length > 0 && !allowedMimes.includes(file.type)) {
-      // In case of 3D models or specific browser mismatches, also check file extension
-      const ext = file.name.split(".").pop()?.toLowerCase();
-      const valid3D =
-        assetType === "MODEL_3D" && (ext === "glb" || ext === "gltf");
-      if (!valid3D) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `Invalid file type "${file.type}". Allowed for ${assetType}: ${allowedMimes.join(", ")}`,
-          },
-          { status: 400 }
-        );
-      }
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Invalid MIME type "${file.type}". Allowed for ${assetType}: ${allowedMimes.join(", ")}`,
+        },
+        { status: 400 }
+      );
     }
 
     // Validate File Size
@@ -125,35 +133,45 @@ export async function POST(
     // Upload via Storage Adapter
     const stored = await storage.upload(buffer, relativeStoragePath, file.type);
 
-    // If exclusive slot is specified, unassign existing assets for that slot in this project
-    const exclusiveSlots = ["HERO_BACKGROUND", "BEFORE_SLOT", "AFTER_SLOT", "POSTER_FALLBACK"];
-    if (assignedSlot && exclusiveSlots.includes(assignedSlot)) {
-      await db.projectAsset.updateMany({
-        where: { projectId, assignedSlot },
-        data: { assignedSlot: null },
+    try {
+      // If exclusive slot is specified, unassign existing assets for that slot in this project
+      const exclusiveSlots = ["HERO_BACKGROUND", "BEFORE_SLOT", "AFTER_SLOT", "POSTER_FALLBACK"];
+      if (assignedSlot && exclusiveSlots.includes(assignedSlot)) {
+        await db.projectAsset.updateMany({
+          where: { projectId, assignedSlot },
+          data: { assignedSlot: null },
+        });
+      }
+
+      // Persist asset metadata
+      const asset = await db.projectAsset.create({
+        data: {
+          projectId,
+          name: customName || file.name,
+          fileName: uniqueFileName,
+          fileUrl: stored.url,
+          filePath: stored.filePath,
+          mimeType: file.type || "application/octet-stream",
+          fileSize: file.size,
+          assetType,
+          assignedSlot,
+          metadataJson: JSON.stringify({
+            originalName: file.name,
+            lastModified: file.lastModified,
+          }),
+        },
       });
+
+      return NextResponse.json({ success: true, data: asset }, { status: 201 });
+    } catch (dbError) {
+      // Rollback physical file if DB creation fails
+      try {
+        await storage.delete(stored.filePath);
+      } catch (cleanupErr) {
+        console.error("Failed to delete orphaned file during rollback:", cleanupErr);
+      }
+      throw dbError;
     }
-
-    // Persist asset metadata
-    const asset = await db.projectAsset.create({
-      data: {
-        projectId,
-        name: customName || file.name,
-        fileName: uniqueFileName,
-        fileUrl: stored.url,
-        filePath: stored.filePath,
-        mimeType: file.type || "application/octet-stream",
-        fileSize: file.size,
-        assetType,
-        assignedSlot,
-        metadataJson: JSON.stringify({
-          originalName: file.name,
-          lastModified: file.lastModified,
-        }),
-      },
-    });
-
-    return NextResponse.json({ success: true, data: asset }, { status: 201 });
   } catch (error) {
     console.error("POST /api/projects/[id]/assets error:", error);
     return NextResponse.json(
@@ -162,3 +180,4 @@ export async function POST(
     );
   }
 }
+

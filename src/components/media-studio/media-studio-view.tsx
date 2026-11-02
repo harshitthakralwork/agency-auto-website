@@ -704,3 +704,4 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
     </div>
   );
 }
+

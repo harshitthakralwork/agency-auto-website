@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { projectUpdateSchema } from "@/lib/validations/project";
+import { storage } from "@/lib/storage/local-adapter";
 
 export async function GET(
   _req: NextRequest,
@@ -103,9 +104,12 @@ export async function DELETE(
       where: { id },
     });
 
+    // Clean up physical media directory safely
+    await storage.deleteProjectDirectory(id);
+
     return NextResponse.json({
       success: true,
-      message: "Project deleted successfully",
+      message: "Project and media assets deleted successfully",
     });
   } catch (error) {
     console.error("DELETE /api/projects/[id] error:", error);

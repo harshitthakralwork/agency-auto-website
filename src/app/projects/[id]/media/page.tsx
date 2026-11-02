@@ -25,3 +25,4 @@ export default async function MediaStudioPage({
 
   return <MediaStudioView project={project} initialAssets={project.assets} />;
 }
+

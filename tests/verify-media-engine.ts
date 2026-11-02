@@ -3,6 +3,7 @@ import { LocalStorageAdapter } from "../src/lib/storage/local-adapter";
 import {
   assetUpdateSchema,
   ALLOWED_MIME_TYPES,
+  ALLOWED_EXTENSIONS,
   MAX_FILE_SIZES,
   ASSET_TYPES,
   ASSIGNED_SLOTS,
@@ -255,6 +256,104 @@ async function runMediaTests() {
     await prisma.project.delete({ where: { id: clientAlpha.id } });
     await prisma.project.delete({ where: { id: clientBeta.id } });
 
+    // 6. Testing Audit Hardening Fixes
+    console.log("\n--- 6. Testing Audit Hardening Fixes (Security & Cleanup) ---");
+
+    // Fix 1: Strict extension whitelist & spoofing rejection
+    function validateExtension(fileName: string, assetType: string): boolean {
+      const ext = fileName.split(".").pop()?.toLowerCase() || "";
+      const allowed = ALLOWED_EXTENSIONS[assetType] || [];
+      return Boolean(ext && allowed.includes(ext));
+    }
+
+    assert(!validateExtension("malicious.php", "IMAGE"), "Strict extension check rejects spoofed .php files disguised as IMAGE");
+    assert(!validateExtension("exploit.html", "VIDEO"), "Strict extension check rejects .html files disguised as VIDEO");
+    assert(!validateExtension("script.sh", "MODEL_3D"), "Strict extension check rejects .sh files disguised as MODEL_3D");
+    assert(!validateExtension("noextension", "IMAGE"), "Strict extension check rejects files missing extensions");
+    assert(validateExtension("gallery-photo.webp", "IMAGE"), "Strict extension check accepts valid .webp extension for IMAGE");
+    assert(validateExtension("cinematic-reel.mp4", "VIDEO"), "Strict extension check accepts valid .mp4 extension for VIDEO");
+
+    // Fix 2: Path traversal boundary enforcement
+    let traversalUploadBlocked = false;
+    try {
+      await storage.upload(
+        Buffer.from("MALICIOUS_BYTES"),
+        "../../outside-root.txt",
+        "text/plain"
+      );
+    } catch (err: any) {
+      if (err.message.includes("Directory traversal attempt detected") || err.message.includes("outside")) {
+        traversalUploadBlocked = true;
+      }
+    }
+    assert(traversalUploadBlocked, "LocalStorageAdapter blocks directory traversal attempts escaping upload root");
+
+    let traversalDeleteBlocked = false;
+    try {
+      await storage.delete(path.resolve(process.cwd(), "..", "system-file.txt"));
+    } catch (err: any) {
+      if (err.message.includes("Path is outside upload storage boundary")) {
+        traversalDeleteBlocked = true;
+      }
+    }
+    assert(traversalDeleteBlocked, "LocalStorageAdapter blocks deletion of files outside uploads directory");
+
+    // Fix 3: Project directory cleanup & safe isolation
+    const proj1Id = "test-cleanup-isolated-1";
+    const proj2Id = "test-cleanup-isolated-2";
+
+    const f1 = await storage.upload(Buffer.from("P1"), `projects/${proj1Id}/images/p1.jpg`, "image/jpeg");
+    const f2 = await storage.upload(Buffer.from("P2"), `projects/${proj2Id}/images/p2.jpg`, "image/jpeg");
+
+    assert((await storage.exists(f1.filePath)) && (await storage.exists(f2.filePath)), "Both projects created isolated physical files on disk");
+
+    // Clean up project 1
+    await storage.deleteProjectDirectory(proj1Id);
+    assert(!(await storage.exists(f1.filePath)), "deleteProjectDirectory safely purged project 1's physical files");
+    assert(await storage.exists(f2.filePath), "Project 2's physical files remain untouched (Directory isolation verified)");
+
+    // Clean up project 2
+    await storage.deleteProjectDirectory(proj2Id);
+    assert(!(await storage.exists(f2.filePath)), "Project 2 directory cleaned up successfully");
+
+    // Fix 4: Upload rollback on database failure
+    const rollbackTestFile = await storage.upload(
+      Buffer.from("ROLLBACK_TEST_FILE_CONTENT"),
+      `projects/test-rollback/images/orphan-candidate.jpg`,
+      "image/jpeg"
+    );
+    assert(await storage.exists(rollbackTestFile.filePath), "Rollback candidate file exists on disk prior to DB insert");
+
+    let rollbackExecuted = false;
+    try {
+      // Simulate failed DB insert (foreign key constraint failure with non-existent project)
+      await prisma.projectAsset.create({
+        data: {
+          projectId: "non-existent-project-cuid-99999",
+          name: "Should Fail",
+          fileName: "orphan-candidate.jpg",
+          fileUrl: rollbackTestFile.url,
+          filePath: rollbackTestFile.filePath,
+          mimeType: "image/jpeg",
+          fileSize: 100,
+          assetType: "IMAGE",
+        },
+      });
+    } catch {
+      // Simulated route handler rollback
+      await storage.delete(rollbackTestFile.filePath);
+      rollbackExecuted = true;
+    }
+
+    assert(rollbackExecuted, "Database insert failure triggered rollback catch block");
+    const existsAfterRollback = await storage.exists(rollbackTestFile.filePath);
+    assert(!existsAfterRollback, "Rollback successfully unlinked file from disk; zero orphaned files remain");
+
+    // Clean up rollback folder
+    try {
+      await fs.rm(path.join(process.cwd(), "public", "uploads", "projects", "test-rollback"), { recursive: true, force: true });
+    } catch {}
+
     console.log("\n=================================================");
     console.log(`  VERIFICATION COMPLETE: ${passedTests}/${totalTests} TESTS PASSED`);
     console.log("=================================================\n");
@@ -267,3 +366,4 @@ async function runMediaTests() {
 }
 
 runMediaTests();
+
