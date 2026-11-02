@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const status = searchParams.get("status");
+    const experienceLevel = searchParams.get("experienceLevel");
     const query = searchParams.get("q");
 
     const where: Record<string, unknown> = {};
@@ -20,6 +21,9 @@ export async function GET(req: NextRequest) {
     }
     if (status && status !== "all") {
       where.status = status;
+    }
+    if (experienceLevel && experienceLevel !== "all") {
+      where.experienceLevel = experienceLevel;
     }
     if (query) {
       where.OR = [
@@ -79,6 +83,7 @@ export async function POST(req: NextRequest) {
     >;
     const preset = DESIGN_PRESETS[presetId] || DESIGN_PRESETS.cinematic;
     const defaultSections = getDefaultSectionsForCategory(data.category);
+    const experienceLevel = data.experienceLevel || "CINEMATIC";
 
     // Atomically create Project and linked ProjectDesignConfig
     const newProject = await db.project.create({
@@ -86,6 +91,7 @@ export async function POST(req: NextRequest) {
         name: data.name,
         slug,
         category: data.category,
+        experienceLevel,
         location: data.location || null,
         description: data.description || null,
         services: data.services || "",
@@ -93,6 +99,7 @@ export async function POST(req: NextRequest) {
         status: data.status,
         designConfig: {
           create: {
+            experienceLevel,
             preset: preset.id,
             primaryColor: preset.colors.primary,
             secondaryColor: preset.colors.secondary,
@@ -107,8 +114,19 @@ export async function POST(req: NextRequest) {
             layoutStyle: preset.layout.layoutStyle,
             borderRadius: preset.layout.borderRadius,
             containerWidth: preset.layout.containerWidth,
-            animationIntensity: preset.animation.animationIntensity,
-            enableCanvasFx: preset.animation.enableCanvasFx,
+            animationIntensity: experienceLevel === "STANDARD" ? "subtle" : "cinematic",
+            enableCanvasFx: experienceLevel !== "STANDARD",
+            threeDPreferences: JSON.stringify({
+              objectType: experienceLevel === "IMMERSIVE_3D" ? "product_model" : "none",
+              scrollInteraction: experienceLevel === "IMMERSIVE_3D" ? "rotate_on_scroll" : "none",
+              lightingEnvironment: "studio",
+              wireframeMode: false,
+              autoRotate: true,
+            }),
+            mediaPreferences: JSON.stringify({
+              canvasFrameSequenceEnabled: experienceLevel === "CINEMATIC",
+              beforeAfterComparisonEnabled: true,
+            }),
             sectionsConfigJson: JSON.stringify(defaultSections),
             responsiveSettings: JSON.stringify({}),
           },

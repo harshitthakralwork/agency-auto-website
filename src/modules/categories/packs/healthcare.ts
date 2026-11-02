@@ -3,7 +3,7 @@ import { CategoryPack } from "../types";
 export const healthcarePack: CategoryPack = {
   id: "healthcare",
   title: "Healthcare & Medical",
-  tagline: "Empathetic, credible, and clinical trust-building experiences",
+  tagline: "Empathetic, clinical trust-building and clear patient triage",
   description:
     "Engineered for hospitals, specialty clinics, dental practices, and wellness centers requiring clinical rigor, appointment scheduling, and patient clarity.",
   iconName: "Stethoscope",
@@ -16,6 +16,59 @@ export const healthcarePack: CategoryPack = {
     "Insurance & Billing Guidance",
     "HIPAA-Compliant Contact Inquiries",
     "Departmental Service Directory",
+  ],
+  experienceAdaptations: {
+    STANDARD: {
+      level: "STANDARD",
+      title: "Clinical Clarity & Direct Access",
+      tagline: "Fast, clear appointment booking and accessible physician directory",
+      characteristics: [
+        "High-contrast legible typography",
+        "Clear emergency contact banners",
+        "Direct specialist appointment booking forms",
+        "Mobile-optimized patient triage",
+      ],
+      recommendedComponents: ["EmergencyBanner", "SpecialistDirectory", "TriageScheduler", "InsuranceAccordion"],
+    },
+    CINEMATIC: {
+      level: "CINEMATIC",
+      title: "Empathetic Healing Narrative",
+      tagline: "Human-centric clinical storytelling and facility cinematography",
+      characteristics: [
+        "Slow-motion high-definition surgical and care documentary footage",
+        "Patient recovery before/after condition transformation slider",
+        "Staggered entrance of specialist credentials and board certifications",
+        "Calm atmospheric palette transitions that reduce patient anxiety",
+      ],
+      recommendedComponents: ["CinematicHeroVideo", "RecoveryTransformationSlider", "PhysicianStoryScroll", "FacilityDroneFlythrough"],
+    },
+    IMMERSIVE_3D: {
+      level: "IMMERSIVE_3D",
+      title: "Interactive Medical Digital Twin",
+      tagline: "Explorable 3D human anatomy and clinical facility visualization",
+      characteristics: [
+        "Interactive 3D anatomical organ models (e.g. cardiac, dental arch, joint spine)",
+        "Scroll-driven camera movement showing minimally invasive treatment pathways",
+        "3D spatial clinic campus navigation and diagnostic technology walkthrough",
+      ],
+      recommendedComponents: ["AnatomicalViewer3D", "ProcedurePathCamera", "FacilityDigitalTwin"],
+    },
+  },
+  visualAssetRequirements: {
+    imageStandard: "High-resolution RAW photography of accredited physicians with neutral medical backdrops (min 2400x1600).",
+    videoFormat: "4K 60fps ProRes/H.265 slow-motion clinical procedures and facility walkthroughs.",
+    frameSequenceSpecs: "120-frame WebP sequence for patient smile reconstruction or orthopedic joint restoration.",
+    threeDModelSpecs: "GLTF/GLB Draco-compressed 3D anatomical models under 8MB with PBR realistic tissue/bone materials.",
+  },
+  animationRecommendations: [
+    "Gentle easing (cubic-bezier) to maintain dignified, tranquil medical presence.",
+    "Pinned hero section revealing emergency hours and instant physician booking.",
+    "Subtle scroll-linked depth parallax for clinical leadership portraits.",
+  ],
+  seoAndAccessibility: [
+    "WCAG 2.1 AAA color contrast compliance for healthcare accessibility.",
+    "Full screen-reader semantic landmarks for emergency alerts and telephone numbers.",
+    "Medical Schema.org structured data (Physician, MedicalClinic, MedicalSpecialty).",
   ],
   recommendedPages: [
     { id: "home", name: "Home", slug: "/", description: "Patient landing page with emergency contacts and top specialties", isPrimary: true },
@@ -44,10 +97,14 @@ export const healthcarePack: CategoryPack = {
       description: "Primary value proposition, trust metrics, and appointment scheduler.",
       defaultEnabled: true,
       order: 2,
+      cinematicHook: "Full-bleed background video of state-of-the-art diagnostic facilities with soft clinical lighting.",
+      threeDHook: "Interactive 3D dental arch / anatomical organ floating with gentle hover tilt.",
       previewSnippet: {
         headline: "Compassionate, World-Class Medical Care for Your Entire Family",
         subheadline: "Board-certified physicians, state-of-the-art diagnostic technology, and personalized healing pathways.",
         actionLabel: "Book an Appointment",
+        beforeLabel: "Chronic Joint Pain & Mobility Limits",
+        afterLabel: "Full Pain-Free Mobility Restored",
       },
     },
     {
@@ -79,9 +136,12 @@ export const healthcarePack: CategoryPack = {
       description: "Verified patient recovery narratives and patient satisfaction metrics.",
       defaultEnabled: true,
       order: 5,
+      cinematicHook: "Interactive Before/After clinical transformation slider illustrating patient rehabilitation.",
       previewSnippet: {
         headline: "Patient Voices & Recovery Journeys",
         subheadline: "98.4% patient satisfaction rating across inpatient and outpatient care centers.",
+        beforeLabel: "Severe Spinal Alignment Distortion",
+        afterLabel: "Corrected Posture Post-Intervention",
       },
     },
     {

@@ -13,11 +13,14 @@ import {
   Clock,
   MapPin,
   Building2,
+  Box,
+  Sparkles,
+  Layout,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { StatusBadge, CategoryBadge } from "@/components/layout/status-badge";
+import { StatusBadge, CategoryBadge, ExperienceBadge } from "@/components/layout/status-badge";
 import { ALL_CATEGORY_PACKS } from "@/modules/categories/registry";
 import { formatDate } from "@/lib/utils";
 
@@ -26,6 +29,7 @@ interface ProjectItem {
   name: string;
   slug: string;
   category: string;
+  experienceLevel: string;
   location: string | null;
   description: string | null;
   services: string;
@@ -47,12 +51,15 @@ export function ProjectCatalog({
 }) {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
 
   const filtered = useMemo(() => {
     return initialProjects.filter((p) => {
       const matchesCategory =
         selectedCategory === "all" || p.category === selectedCategory;
+      const matchesLevel =
+        selectedLevel === "all" || p.experienceLevel === selectedLevel;
       const matchesStatus =
         selectedStatus === "all" || p.status === selectedStatus;
       const matchesSearch =
@@ -62,9 +69,9 @@ export function ProjectCatalog({
         (p.description && p.description.toLowerCase().includes(search.toLowerCase())) ||
         (p.services && p.services.toLowerCase().includes(search.toLowerCase()));
 
-      return matchesCategory && matchesStatus && matchesSearch;
+      return matchesCategory && matchesLevel && matchesStatus && matchesSearch;
     });
-  }, [initialProjects, search, selectedCategory, selectedStatus]);
+  }, [initialProjects, search, selectedCategory, selectedLevel, selectedStatus]);
 
   return (
     <div className="space-y-6">
@@ -82,6 +89,21 @@ export function ProjectCatalog({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Experience Level Dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 font-medium">Level:</span>
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value)}
+              className="bg-slate-900 border border-slate-700/80 text-xs text-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              <option value="all">All Levels (3)</option>
+              <option value="STANDARD">Level 1 • Standard</option>
+              <option value="CINEMATIC">Level 2 • Cinematic</option>
+              <option value="IMMERSIVE_3D">Level 3 • Immersive 3D</option>
+            </select>
+          </div>
+
           {/* Category Dropdown */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 font-medium">Pack:</span>
@@ -133,7 +155,7 @@ export function ProjectCatalog({
           <p className="mt-1 text-xs text-slate-400">
             {initialProjects.length === 0
               ? "You haven't created any client projects yet."
-              : "Try adjusting your search criteria or category filter."}
+              : "Try adjusting your search criteria, experience level, or category filter."}
           </p>
           <div className="mt-6 flex justify-center gap-3">
             {initialProjects.length === 0 ? (
@@ -150,6 +172,7 @@ export function ProjectCatalog({
                 onClick={() => {
                   setSearch("");
                   setSelectedCategory("all");
+                  setSelectedLevel("all");
                   setSelectedStatus("all");
                 }}
               >
@@ -166,9 +189,13 @@ export function ProjectCatalog({
               className="flex flex-col justify-between hover:border-slate-700 hover:bg-slate-900/80 transition-all duration-150"
             >
               <div className="p-5 pb-3">
-                <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex items-start justify-between gap-2 mb-2">
                   <CategoryBadge categoryId={project.category} />
                   <StatusBadge status={project.status} />
+                </div>
+
+                <div className="mb-2">
+                  <ExperienceBadge level={project.experienceLevel} />
                 </div>
 
                 <Link

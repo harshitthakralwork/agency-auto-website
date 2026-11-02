@@ -4,7 +4,7 @@ import { ALL_CATEGORY_PACKS } from "@/modules/categories/registry";
 import { DESIGN_PRESETS } from "@/modules/design/presets";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge, CategoryBadge } from "@/components/layout/status-badge";
+import { StatusBadge, CategoryBadge, ExperienceBadge } from "@/components/layout/status-badge";
 import { formatDate } from "@/lib/utils";
 import {
   FolderKanban,
@@ -15,8 +15,9 @@ import {
   ArrowRight,
   Clock,
   MapPin,
-  SlidersHorizontal,
-  Eye,
+  Box,
+  Layout,
+  Video,
 } from "lucide-react";
 
 export default async function DashboardPage() {
@@ -32,6 +33,11 @@ export default async function DashboardPage() {
   const reviewCount = await db.project.count({ where: { status: "READY_FOR_REVIEW" } });
   const completedCount = await db.project.count({ where: { status: "COMPLETED" } });
 
+  // Experience level counts
+  const standardCount = await db.project.count({ where: { experienceLevel: "STANDARD" } });
+  const cinematicCount = await db.project.count({ where: { experienceLevel: "CINEMATIC" } });
+  const threeDCount = await db.project.count({ where: { experienceLevel: "IMMERSIVE_3D" } });
+
   return (
     <div className="space-y-8 pb-12">
       {/* Top Banner / Welcome */}
@@ -46,7 +52,7 @@ export default async function DashboardPage() {
             </span>
           </div>
           <p className="mt-1.5 text-sm text-slate-400">
-            Design, configure, and orchestrate custom client websites with modular industry packs.
+            Design, configure, and orchestrate Standard, Cinematic, and Immersive 3D client websites with modular industry packs.
           </p>
         </div>
 
@@ -57,6 +63,48 @@ export default async function DashboardPage() {
               <span>New Client Project</span>
             </Button>
           </Link>
+        </div>
+      </div>
+
+      {/* Experience Tiers Quick Status Strip */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400">
+              <Layout className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white uppercase tracking-wider">Level 1 • Standard</p>
+              <p className="text-[11px] text-slate-400">Clean, responsive business sites</p>
+            </div>
+          </div>
+          <span className="font-mono text-base font-bold text-slate-300">{standardCount}</span>
+        </div>
+
+        <div className="p-4 rounded-xl border border-indigo-900/60 bg-indigo-950/20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-indigo-950 border border-indigo-800 flex items-center justify-center text-indigo-400">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white uppercase tracking-wider">Level 2 • Cinematic</p>
+              <p className="text-[11px] text-indigo-300">Motion, videos & before/after reveals</p>
+            </div>
+          </div>
+          <span className="font-mono text-base font-bold text-indigo-300">{cinematicCount}</span>
+        </div>
+
+        <div className="p-4 rounded-xl border border-violet-900/60 bg-violet-950/20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-violet-950 border border-violet-800 flex items-center justify-center text-violet-400">
+              <Box className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white uppercase tracking-wider">Level 3 • Immersive 3D</p>
+              <p className="text-[11px] text-violet-300">Interactive WebGL 3D models</p>
+            </div>
+          </div>
+          <span className="font-mono text-base font-bold text-violet-300">{threeDCount}</span>
         </div>
       </div>
 
@@ -121,14 +169,13 @@ export default async function DashboardPage() {
           </div>
 
           {projects.length === 0 ? (
-            /* Empty State */
             <Card className="border-dashed border-slate-800 bg-slate-950/40 p-12 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-950/60 text-indigo-400 border border-indigo-800/60 mb-4">
                 <FolderKanban className="h-7 w-7" />
               </div>
               <h3 className="text-base font-semibold text-white">No Client Projects Yet</h3>
               <p className="mx-auto mt-1 max-w-sm text-xs text-slate-400 leading-relaxed">
-                Start by creating your first agency project. Pick an industry pack, customize its design tokens, and launch the live interactive preview.
+                Start by creating your first agency project. Pick an experience tier, select an industry pack, and launch the live interactive preview.
               </p>
               <div className="mt-6 flex justify-center gap-3">
                 <Link href="/projects/new">
@@ -147,11 +194,16 @@ export default async function DashboardPage() {
                   className="group relative transition-all hover:border-slate-700 hover:bg-slate-900/90"
                 >
                   <CardHeader className="p-4 pb-2">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
                       <CategoryBadge categoryId={project.category} />
                       <StatusBadge status={project.status} />
                     </div>
-                    <CardTitle className="mt-2 text-base font-semibold group-hover:text-indigo-300 transition-colors">
+
+                    <div className="mb-1">
+                      <ExperienceBadge level={project.experienceLevel} />
+                    </div>
+
+                    <CardTitle className="text-base font-semibold group-hover:text-indigo-300 transition-colors">
                       <Link href={`/projects/${project.id}`}>
                         <span className="absolute inset-0 z-0" />
                         {project.name}
@@ -201,7 +253,7 @@ export default async function DashboardPage() {
                 </Link>
               </div>
               <CardDescription>
-                Each pack defines pages, sections, and business features.
+                Each pack defines pages, sections, and 3-tier adaptations.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 pt-2 space-y-2">
@@ -257,19 +309,19 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Engine Workflow Card */}
-          <div className="rounded-xl border border-indigo-900/50 bg-gradient-to-br from-indigo-950/40 to-slate-950 p-5">
+          {/* 3 Tiers Architecture Callout */}
+          <div className="rounded-xl border border-indigo-900/50 bg-gradient-to-br from-indigo-950/40 via-slate-950 to-violet-950/30 p-5">
             <div className="flex items-center gap-2 text-indigo-400 mb-2">
               <Sparkles className="h-4 w-4" />
-              <h4 className="text-xs font-semibold uppercase tracking-wider">Phase 1 Pipeline</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wider">3-Tier Production Engine</h4>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Create a project, select an industry pack, customize color tokens & layout in Design Studio, and test with the Live Responsive Preview canvas.
+              Every client project can independently target Standard (business accessible), Cinematic (scroll video & transformation reveals), or Immersive 3D (WebGL spatial models).
             </p>
             <div className="mt-4 flex gap-2">
               <Link href="/projects/new" className="w-full">
                 <Button size="sm" className="w-full text-xs">
-                  Scaffold Project
+                  Create Project
                 </Button>
               </Link>
             </div>

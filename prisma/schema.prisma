@@ -12,17 +12,19 @@ model Project {
   name            String
   slug            String               @unique
   category        String
+  experienceLevel String               @default("CINEMATIC") // STANDARD, CINEMATIC, IMMERSIVE_3D
   location        String?
   description     String?
   services        String               @default("")
   targetAudience  String?
-  status          String               @default("DRAFT")
+  status          String               @default("DRAFT")     // DRAFT, IN_PROGRESS, READY_FOR_REVIEW, COMPLETED, ARCHIVED
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
   designConfig    ProjectDesignConfig?
 
   @@index([category])
+  @@index([experienceLevel])
   @@index([status])
 }
 
@@ -30,6 +32,9 @@ model ProjectDesignConfig {
   id                  String   @id @default(cuid())
   projectId           String   @unique
   project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Experience Level (synced with Project for quick access)
+  experienceLevel     String   @default("CINEMATIC") // STANDARD, CINEMATIC, IMMERSIVE_3D
 
   // Style Preset
   preset              String   @default("cinematic")
@@ -54,8 +59,14 @@ model ProjectDesignConfig {
   containerWidth      String   @default("1280px")
 
   // Animation Preferences
-  animationIntensity  String   @default("subtle")
+  animationIntensity  String   @default("cinematic")
   enableCanvasFx      Boolean  @default(false)
+
+  // Media Configurations (JSON string)
+  mediaPreferences    String   @default("{}")
+
+  // 3D Experience Preferences (JSON string: objectType, scrollInteraction, lightingEnvironment, etc.)
+  threeDPreferences   String   @default("{}")
 
   // Section Configurations (stored as JSON array: [{ id, name, enabled, order, customTitle }])
   sectionsConfigJson  String   @default("[]")

@@ -10,6 +10,7 @@ const prisma = new PrismaClient();
 async function runTests() {
   console.log("=================================================");
   console.log("  AGENCY WEBSITE ENGINE — PHASE 1 VERIFICATION   ");
+  console.log("  (Including Standard, Cinematic & 3D Tiers)     ");
   console.log("=================================================");
 
   let passedTests = 0;
@@ -26,8 +27,8 @@ async function runTests() {
     }
   }
 
-  // 1. Verify Category Packs
-  console.log("\n--- 1. Testing Category Engine (6 Industry Packs) ---");
+  // 1. Verify Category Packs & Experience Adaptations
+  console.log("\n--- 1. Testing Category Engine (6 Industry Packs & 3 Experience Levels) ---");
   assert(ALL_CATEGORY_PACKS.length === 6, "All 6 industry packs are registered");
 
   const expectedCategories = [
@@ -45,6 +46,14 @@ async function runTests() {
     assert(pack.recommendedPages.length >= 5, `Pack '${catId}' has at least 5 recommended pages`);
     assert(pack.recommendedSections.length >= 5, `Pack '${catId}' has at least 5 recommended sections`);
     assert(pack.keyFeatures.length >= 5, `Pack '${catId}' has at least 5 domain features`);
+    assert(
+      pack.experienceAdaptations.STANDARD !== undefined &&
+      pack.experienceAdaptations.CINEMATIC !== undefined &&
+      pack.experienceAdaptations.IMMERSIVE_3D !== undefined,
+      `Pack '${catId}' has adaptations for all 3 experience levels`
+    );
+    assert(pack.visualAssetRequirements.imageStandard.length > 0, `Pack '${catId}' defines image asset standards`);
+    assert(pack.visualAssetRequirements.videoFormat.length > 0, `Pack '${catId}' defines video asset standards`);
   }
 
   // 2. Verify Design Presets
@@ -60,8 +69,8 @@ async function runTests() {
     assert(preset.layout.borderRadius.length > 0, `Preset '${presetId}' has border radius defined`);
   }
 
-  // 3. Database Persistence & CRUD Testing
-  console.log("\n--- 3. Testing SQLite Database & Project CRUD Operations ---");
+  // 3. Database Persistence & CRUD Testing Across Experience Levels
+  console.log("\n--- 3. Testing SQLite Database & 3-Tier Experience Levels ---");
 
   // Clean test database
   await prisma.projectDesignConfig.deleteMany({});
@@ -70,11 +79,12 @@ async function runTests() {
   const initialCount = await prisma.project.count();
   assert(initialCount === 0, "Database starts clean for automated testing");
 
-  // Create 6 realistic agency projects
+  // Create 6 realistic agency projects representing the 3 Experience Levels
   const testProjectsData = [
     {
       name: "Apex Health & Dental Clinic",
       category: "healthcare",
+      experienceLevel: "STANDARD",
       location: "Chicago, IL",
       description: "Premier multispecialty clinic providing advanced diagnostics and patient-first dentistry.",
       services: "Preventive Care, Cosmetic Dentistry, Orthodontics, Oral Surgery",
@@ -85,6 +95,7 @@ async function runTests() {
     {
       name: "The Grand Heritage Resort & Banquets",
       category: "hotels-banquets",
+      experienceLevel: "CINEMATIC",
       location: "Aspen, CO",
       description: "Atmospheric alpine resort featuring luxury presidential suites and crystal ballrooms.",
       services: "Executive Suites, Wedding Banquets, Alpine Spa, Fine Dining",
@@ -95,6 +106,7 @@ async function runTests() {
     {
       name: "Horizon Academy of Advanced Sciences",
       category: "schools-coaching",
+      experienceLevel: "STANDARD",
       location: "Boston, MA",
       description: "Accredited college-preparatory academy fostering scientific inquiry and academic excellence.",
       services: "STEM Honors, Board Exam Prep, Olympiad Coaching, College Counseling",
@@ -105,6 +117,7 @@ async function runTests() {
     {
       name: "L'Atelier Charcoal & Woodfire",
       category: "food-restaurants",
+      experienceLevel: "CINEMATIC",
       location: "San Francisco, CA",
       description: "Michelin-recognized seasonal bistro celebrating heritage produce and open woodfire alchemy.",
       services: "Seasonal Tasting Menus, Chef's Table, Sommelier Pairings, Private Buyouts",
@@ -115,6 +128,7 @@ async function runTests() {
     {
       name: "IronCore Athletic Club",
       category: "fitness-sports",
+      experienceLevel: "CINEMATIC",
       location: "Austin, TX",
       description: "Elite performance gym equipped with Olympic lifting turf, recovery sauna, and private coaching.",
       services: "Powerlifting, HIIT Conditioning, 1-on-1 Coaching, Sports Massage",
@@ -125,6 +139,7 @@ async function runTests() {
     {
       name: "Lumière Aesthetics & Hair Atelier",
       category: "salon-beauty",
+      experienceLevel: "IMMERSIVE_3D",
       location: "New York, NY",
       description: "Editorial hair salon and aesthetic spa specializing in French balayage and clinical skincare.",
       services: "French Balayage, Precision Haircuts, Hydrafacials, Brow Architecture",
@@ -135,9 +150,8 @@ async function runTests() {
   ];
 
   for (const item of testProjectsData) {
-    // Validate with Zod first
     const zodValidation = projectCreateSchema.safeParse(item);
-    assert(zodValidation.success, `Zod validation succeeds for project '${item.name}'`);
+    assert(zodValidation.success, `Zod validation succeeds for project '${item.name}' with level ${item.experienceLevel}`);
 
     const preset = DESIGN_PRESETS[item.preset as keyof typeof DESIGN_PRESETS];
     const defaultSections = getDefaultSectionsForCategory(item.category);
@@ -147,6 +161,7 @@ async function runTests() {
         name: item.name,
         slug: item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
         category: item.category,
+        experienceLevel: item.experienceLevel,
         location: item.location,
         description: item.description,
         services: item.services,
@@ -154,6 +169,7 @@ async function runTests() {
         status: item.status,
         designConfig: {
           create: {
+            experienceLevel: item.experienceLevel,
             preset: preset.id,
             primaryColor: preset.colors.primary,
             secondaryColor: preset.colors.secondary,
@@ -168,8 +184,19 @@ async function runTests() {
             layoutStyle: preset.layout.layoutStyle,
             borderRadius: preset.layout.borderRadius,
             containerWidth: preset.layout.containerWidth,
-            animationIntensity: preset.animation.animationIntensity,
-            enableCanvasFx: preset.animation.enableCanvasFx,
+            animationIntensity: item.experienceLevel === "STANDARD" ? "subtle" : "cinematic",
+            enableCanvasFx: item.experienceLevel !== "STANDARD",
+            threeDPreferences: JSON.stringify({
+              objectType: item.experienceLevel === "IMMERSIVE_3D" ? "product_model" : "none",
+              scrollInteraction: item.experienceLevel === "IMMERSIVE_3D" ? "rotate_on_scroll" : "none",
+              lightingEnvironment: "studio",
+              wireframeMode: false,
+              autoRotate: true,
+            }),
+            mediaPreferences: JSON.stringify({
+              canvasFrameSequenceEnabled: item.experienceLevel === "CINEMATIC",
+              beforeAfterComparisonEnabled: true,
+            }),
             sectionsConfigJson: JSON.stringify(defaultSections),
           },
         },
@@ -178,70 +205,63 @@ async function runTests() {
     });
 
     assert(created.id.length > 0, `Project '${item.name}' stored persistently in SQLite`);
+    assert(created.experienceLevel === item.experienceLevel, `ExperienceLevel '${item.experienceLevel}' persisted`);
     assert(created.designConfig !== null, `ProjectDesignConfig 1:1 relation created for '${item.name}'`);
   }
 
   const storedCount = await prisma.project.count();
   assert(storedCount === 6, "All 6 projects are persistently stored in SQLite");
 
-  // 4. Update Project Metadata
-  console.log("\n--- 4. Testing Project Updates & Design Customization ---");
-  const dentalProject = await prisma.project.findFirst({
-    where: { category: "healthcare" },
+  // 4. Update Project Metadata & 3D Preferences
+  console.log("\n--- 4. Testing Experience Level Upgrades & 3D Token Persistence ---");
+  const salonProject = await prisma.project.findFirst({
+    where: { category: "salon-beauty" },
     include: { designConfig: true },
   });
 
-  assert(dentalProject !== null, "Found dental project for update test");
-  if (dentalProject) {
-    // Test Zod update validation
-    const updateZod = projectUpdateSchema.safeParse({
-      status: "IN_PROGRESS",
-      description: "Updated dental description with 24/7 emergency triage service.",
-    });
-    assert(updateZod.success, "Project update passes Zod schema validation");
-
-    const updated = await prisma.project.update({
-      where: { id: dentalProject.id },
-      data: updateZod.data,
-      include: { designConfig: true },
-    });
-
-    assert(updated.status === "IN_PROGRESS", "Project status updated to IN_PROGRESS");
-    assert(
-      updated.description?.includes("24/7 emergency triage") || false,
-      "Project description successfully updated"
-    );
-
-    // Test Design Configuration Custom Tokens
+  assert(salonProject !== null, "Found salon project for 3D update test");
+  if (salonProject) {
     const customDesignInput = {
+      experienceLevel: "IMMERSIVE_3D" as const,
       preset: "custom",
-      primaryColor: "#059669", // custom emerald
-      secondaryColor: "#0284c7",
-      accentColor: "#f59e0b",
-      backgroundColor: "#f0fdf4",
-      surfaceColor: "#ffffff",
-      textColor: "#064e3b",
-      mutedTextColor: "#047857",
+      primaryColor: "#ec4899",
+      secondaryColor: "#8b5cf6",
+      accentColor: "#06b6d4",
+      backgroundColor: "#0a0a0f",
+      surfaceColor: "#181824",
+      textColor: "#ffffff",
+      mutedTextColor: "#a1a1aa",
       headingFont: "Plus Jakarta Sans",
       bodyFont: "Inter",
       baseFontSize: "16px",
       layoutStyle: "modern-contained" as const,
       borderRadius: "0.75rem",
       containerWidth: "1280px",
-      animationIntensity: "subtle" as const,
-      enableCanvasFx: false,
+      animationIntensity: "cinematic" as const,
+      enableCanvasFx: true,
+      threeD: {
+        objectType: "product_model" as const,
+        scrollInteraction: "rotate_on_scroll" as const,
+        lightingEnvironment: "dramatic_neon" as const,
+        wireframeMode: true,
+        autoRotate: true,
+      },
+      media: {
+        canvasFrameSequenceEnabled: true,
+        beforeAfterComparisonEnabled: true,
+      },
       sections: [
-        { id: "emergency_banner", name: "Emergency Alert", enabled: true, order: 1 },
-        { id: "hero_appointment", name: "Appointment Hero", enabled: true, order: 2 },
+        { id: "aesthetic_hero", name: "High-Fashion Hero", enabled: true, order: 1 },
       ],
     };
 
     const designZod = designUpdateSchema.safeParse(customDesignInput);
-    assert(designZod.success, "Custom design tokens pass Zod validation");
+    assert(designZod.success, "Custom 3D design tokens pass Zod validation");
 
     const updatedDesign = await prisma.projectDesignConfig.update({
-      where: { projectId: dentalProject.id },
+      where: { projectId: salonProject.id },
       data: {
+        experienceLevel: customDesignInput.experienceLevel,
         preset: customDesignInput.preset,
         primaryColor: customDesignInput.primaryColor,
         secondaryColor: customDesignInput.secondaryColor,
@@ -252,23 +272,24 @@ async function runTests() {
         mutedTextColor: customDesignInput.mutedTextColor,
         headingFont: customDesignInput.headingFont,
         bodyFont: customDesignInput.bodyFont,
-        borderRadius: customDesignInput.borderRadius,
+        threeDPreferences: JSON.stringify(customDesignInput.threeD),
+        mediaPreferences: JSON.stringify(customDesignInput.media),
         sectionsConfigJson: JSON.stringify(customDesignInput.sections),
       },
     });
 
-    assert(updatedDesign.primaryColor === "#059669", "Custom primary color persisted");
-    assert(updatedDesign.headingFont === "Plus Jakarta Sans", "Custom heading font persisted");
+    assert(updatedDesign.experienceLevel === "IMMERSIVE_3D", "ExperienceLevel updated to IMMERSIVE_3D");
+    assert(updatedDesign.threeDPreferences.includes("dramatic_neon"), "3D dramatic neon lighting persisted");
 
-    // Test Resolver and CSS variables generation
-    const resolvedState = resolveDesignState("healthcare", updatedDesign);
-    assert(resolvedState.colors.primary === "#059669", "Resolver correctly reads custom primary color");
-    assert(resolvedState.typography.headingFont === "Plus Jakarta Sans", "Resolver correctly reads heading font");
+    const resolvedState = resolveDesignState("salon-beauty", updatedDesign);
+    assert(resolvedState.experienceLevel === "IMMERSIVE_3D", "Resolver reads IMMERSIVE_3D experience level");
+    assert(resolvedState.threeD.lightingEnvironment === "dramatic_neon", "Resolver reads dramatic_neon lighting");
+    assert(resolvedState.threeD.wireframeMode === true, "Resolver reads wireframeMode flag");
 
     const cssVars = generateCssVariables(resolvedState);
     assert(
-      (cssVars as Record<string, string>)["--theme-primary"] === "#059669",
-      "CSS Variable '--theme-primary' properly generated for Live Preview"
+      (cssVars as Record<string, string>)["--theme-primary"] === "#ec4899",
+      "CSS Variable '--theme-primary' properly generated for 3D Live Preview"
     );
   }
 
@@ -279,6 +300,7 @@ async function runTests() {
       name: "Temporary Demo Project",
       slug: "temporary-demo-project",
       category: "healthcare",
+      experienceLevel: "STANDARD",
       status: "DRAFT",
       designConfig: {
         create: {

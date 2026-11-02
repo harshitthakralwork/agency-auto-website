@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, AlertCircle, Building2 } from "lucide-react";
+import { ArrowLeft, Save, AlertCircle, Building2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,7 @@ interface ProjectEditProps {
     name: string;
     slug: string;
     category: string;
+    experienceLevel: string;
     location: string | null;
     description: string | null;
     services: string;
@@ -31,6 +32,7 @@ export function ProjectEditForm({ project }: ProjectEditProps) {
 
   const [name, setName] = useState(project.name);
   const [category, setCategory] = useState(project.category);
+  const [experienceLevel, setExperienceLevel] = useState(project.experienceLevel || "CINEMATIC");
   const [location, setLocation] = useState(project.location || "");
   const [description, setDescription] = useState(project.description || "");
   const [services, setServices] = useState(project.services);
@@ -49,6 +51,7 @@ export function ProjectEditForm({ project }: ProjectEditProps) {
         body: JSON.stringify({
           name,
           category,
+          experienceLevel,
           location,
           description,
           services,
@@ -87,7 +90,7 @@ export function ProjectEditForm({ project }: ProjectEditProps) {
           Edit Client Project Metadata
         </h1>
         <p className="text-xs text-slate-400">
-          Modify business identity, industry categorization, and scope parameters.
+          Modify business identity, experience tier, and scope parameters.
         </p>
       </div>
 
@@ -136,7 +139,22 @@ export function ProjectEditForm({ project }: ProjectEditProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-indigo-400">
+                  Experience Tier
+                </label>
+                <select
+                  value={experienceLevel}
+                  onChange={(e) => setExperienceLevel(e.target.value)}
+                  className="w-full h-10 rounded-lg border border-indigo-700/80 bg-slate-900 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="STANDARD">Level 1 • Standard</option>
+                  <option value="CINEMATIC">Level 2 • Cinematic</option>
+                  <option value="IMMERSIVE_3D">Level 3 • Immersive 3D</option>
+                </select>
+              </div>
+
               <Input
                 label="Location / Headquarter"
                 value={location}

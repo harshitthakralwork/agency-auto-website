@@ -21,6 +21,10 @@ import {
   ExternalLink,
   Layers,
   CheckCircle2,
+  Box,
+  Video,
+  SunMedium,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,19 +32,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { DESIGN_PRESETS, AVAILABLE_FONTS } from "@/modules/design/presets";
 import {
   DesignPresetId,
+  ExperienceLevel,
   ProjectDesignState,
   SectionConfigItem,
 } from "@/modules/design/types";
 import { resolveDesignState } from "@/modules/design/resolver";
 import { getCategoryPack } from "@/modules/categories/registry";
-import { CategoryBadge } from "@/components/layout/status-badge";
+import { CategoryBadge, ExperienceBadge } from "@/components/layout/status-badge";
 
 interface DesignStudioProps {
   project: {
     id: string;
     name: string;
     category: string;
+    experienceLevel: string;
     designConfig: {
+      experienceLevel?: string;
       preset: string;
       primaryColor: string;
       secondaryColor: string;
@@ -57,6 +64,8 @@ interface DesignStudioProps {
       containerWidth: string;
       animationIntensity: string;
       enableCanvasFx: boolean;
+      threeDPreferences?: string;
+      mediaPreferences?: string;
       sectionsConfigJson: string;
       responsiveSettings: string;
     } | null;
@@ -69,13 +78,36 @@ export function DesignStudioView({ project }: DesignStudioProps) {
 
   // Initialize design state using resolver
   const [designState, setDesignState] = useState<ProjectDesignState>(() =>
-    resolveDesignState(project.category, project.designConfig)
+    resolveDesignState(project.category, {
+      ...project.designConfig,
+      experienceLevel: project.experienceLevel,
+    })
   );
 
-  const [activeTab, setActiveTab] = useState<"preset" | "colors" | "typography" | "layout" | "sections">("preset");
+  const [activeTab, setActiveTab] = useState<
+    "experience" | "preset" | "colors" | "typography" | "layout" | "sections"
+  >("experience");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Experience level change handler
+  const handleExperienceLevelChange = (level: ExperienceLevel) => {
+    setDesignState((prev) => ({
+      ...prev,
+      experienceLevel: level,
+      animation: {
+        ...prev.animation,
+        animationIntensity: level === "STANDARD" ? "subtle" : "cinematic",
+        enableCanvasFx: level !== "STANDARD",
+      },
+      threeD: {
+        ...prev.threeD,
+        objectType: level === "IMMERSIVE_3D" ? "product_model" : "none",
+        scrollInteraction: level === "IMMERSIVE_3D" ? "rotate_on_scroll" : "none",
+      },
+    }));
+  };
 
   // Apply a preset
   const handleApplyPreset = (presetId: Exclude<DesignPresetId, "custom">) => {
@@ -122,6 +154,28 @@ export function DesignStudioView({ project }: DesignStudioProps) {
     }));
   };
 
+  // 3D Preferences handler
+  const handleThreeDChange = <K extends keyof ProjectDesignState["threeD"]>(
+    key: K,
+    value: ProjectDesignState["threeD"][K]
+  ) => {
+    setDesignState((prev) => ({
+      ...prev,
+      threeD: { ...prev.threeD, [key]: value },
+    }));
+  };
+
+  // Media Preferences handler
+  const handleMediaChange = <K extends keyof ProjectDesignState["media"]>(
+    key: K,
+    value: ProjectDesignState["media"][K]
+  ) => {
+    setDesignState((prev) => ({
+      ...prev,
+      media: { ...prev.media, [key]: value },
+    }));
+  };
+
   // Toggle section enabled
   const handleToggleSection = (sectionId: string) => {
     setDesignState((prev) => ({
@@ -161,6 +215,7 @@ export function DesignStudioView({ project }: DesignStudioProps) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          experienceLevel: designState.experienceLevel,
           preset: designState.preset,
           primaryColor: designState.colors.primary,
           secondaryColor: designState.colors.secondary,
@@ -177,6 +232,8 @@ export function DesignStudioView({ project }: DesignStudioProps) {
           containerWidth: designState.layout.containerWidth,
           animationIntensity: designState.animation.animationIntensity,
           enableCanvasFx: designState.animation.enableCanvasFx,
+          threeD: designState.threeD,
+          media: designState.media,
           sections: designState.sections,
         }),
       });
@@ -216,9 +273,10 @@ export function DesignStudioView({ project }: DesignStudioProps) {
               Design Configuration Studio
             </h1>
             <CategoryBadge categoryId={project.category} />
+            <ExperienceBadge level={designState.experienceLevel} />
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Customizing tokens, typography scales, palettes, and section architecture for{" "}
+            Customizing tokens, 3D preferences, palettes, and section architecture for{" "}
             <strong className="text-white">{project.name}</strong>
           </p>
         </div>
@@ -262,7 +320,8 @@ export function DesignStudioView({ project }: DesignStudioProps) {
       {/* Tabs Navigation */}
       <div className="flex border-b border-slate-800 space-x-2 overflow-x-auto pb-1">
         {[
-          { id: "preset", label: "Presets", icon: Sparkles },
+          { id: "experience", label: "Experience & 3D", icon: Box },
+          { id: "preset", label: "Style Presets", icon: Sparkles },
           { id: "colors", label: "Color Tokens", icon: Palette },
           { id: "typography", label: "Typography", icon: Type },
           { id: "layout", label: "Layout & Motion", icon: Layout },
@@ -287,7 +346,205 @@ export function DesignStudioView({ project }: DesignStudioProps) {
         })}
       </div>
 
-      {/* TAB 1: PRESETS */}
+      {/* TAB 1: EXPERIENCE LEVEL & 3D */}
+      {activeTab === "experience" && (
+        <div className="space-y-6">
+          {/* Experience Level Selector Cards */}
+          <Card className="border-indigo-900/60 bg-slate-950/60">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Box className="h-4 w-4 text-indigo-400" />
+                <span>Experience Level Tier</span>
+              </CardTitle>
+              <CardDescription>
+                Toggle the interaction tier. Switching tiers reconfigures default animation and 3D parameter slots.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  {
+                    level: "STANDARD" as const,
+                    name: "Level 1 • Standard",
+                    tagline: "Professional & Responsive",
+                    desc: "Clean card layouts, high-contrast typography, image galleries, and accessible business forms.",
+                  },
+                  {
+                    level: "CINEMATIC" as const,
+                    name: "Level 2 • Cinematic",
+                    tagline: "Motion, Video & Transformations",
+                    desc: "Full-bleed video hero sections, before/after split transformation slider, and pinned scroll reveals.",
+                  },
+                  {
+                    level: "IMMERSIVE_3D" as const,
+                    name: "Level 3 • Immersive 3D",
+                    tagline: "Interactive 3D WebGL",
+                    desc: "3D model inspection, scroll-driven rotation, custom camera orbits, and lighting environments.",
+                  },
+                ].map((tier) => {
+                  const isSelected = designState.experienceLevel === tier.level;
+                  return (
+                    <div
+                      key={tier.level}
+                      onClick={() => handleExperienceLevelChange(tier.level)}
+                      className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                        isSelected
+                          ? "border-indigo-500 bg-indigo-950/30 ring-1 ring-indigo-500 shadow-xl"
+                          : "border-slate-800 bg-slate-900/60 hover:border-slate-700"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-xs text-white uppercase tracking-wider">
+                            {tier.name}
+                          </span>
+                          {isSelected && <CheckCircle2 className="h-4 w-4 text-indigo-400" />}
+                        </div>
+                        <p className="text-xs font-semibold text-indigo-300">{tier.tagline}</p>
+                        <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                          {tier.desc}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 3D Parameters (Active for Level 3 or configurable) */}
+          <Card className="border-slate-800 bg-slate-950/60">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Box className="h-4 w-4 text-violet-400" />
+                <span>3D Experience Configuration</span>
+              </CardTitle>
+              <CardDescription>
+                Configure WebGL model hooks, scroll interactions, and lighting scenes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                    3D Object Archetype
+                  </label>
+                  <select
+                    value={designState.threeD.objectType}
+                    onChange={(e) =>
+                      handleThreeDChange("objectType", e.target.value as ProjectDesignState["threeD"]["objectType"])
+                    }
+                    className="w-full h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    <option value="none">None (Disabled)</option>
+                    <option value="product_model">Product / Signature Asset Model</option>
+                    <option value="hero_floating_object">Hero Floating Object / Badge</option>
+                    <option value="spatial_environment">Spatial Environment / Facility</option>
+                    <option value="interactive_particles">Interactive Kinetic Particles</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                    Scroll Interaction Mode
+                  </label>
+                  <select
+                    value={designState.threeD.scrollInteraction}
+                    onChange={(e) =>
+                      handleThreeDChange("scrollInteraction", e.target.value as ProjectDesignState["threeD"]["scrollInteraction"])
+                    }
+                    className="w-full h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    <option value="none">None (Static / Hover only)</option>
+                    <option value="rotate_on_scroll">Rotate Object on Page Scroll</option>
+                    <option value="camera_zoom_pan">Camera Orbit & Dolly Zoom</option>
+                    <option value="exploded_view">Exploded View Disassembly</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                    Lighting Scene
+                  </label>
+                  <select
+                    value={designState.threeD.lightingEnvironment}
+                    onChange={(e) =>
+                      handleThreeDChange("lightingEnvironment", e.target.value as ProjectDesignState["threeD"]["lightingEnvironment"])
+                    }
+                    className="w-full h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    <option value="studio">Studio Neutral (Soft Key Light)</option>
+                    <option value="dramatic_neon">Dramatic Cyber Neon (High Contrast)</option>
+                    <option value="sunset">Sunset Warm Glow (Golden Hour)</option>
+                    <option value="clinical_bright">Clinical Bright (Pure Daylight)</option>
+                    <option value="luxury_warm">Luxury Warm (Tungsten & Amber)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-4 pt-2 border-t border-slate-800/80">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={designState.threeD.wireframeMode}
+                    onChange={(e) => handleThreeDChange("wireframeMode", e.target.checked)}
+                    className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                  />
+                  <span>Render in Wireframe Mode (Tech Aesthetic)</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={designState.threeD.autoRotate}
+                    onChange={(e) => handleThreeDChange("autoRotate", e.target.checked)}
+                    className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                  />
+                  <span>Enable Subtle Idle Auto-Rotation</span>
+                </label>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Media & Transformation Settings */}
+          <Card className="border-slate-800 bg-slate-950/60">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Video className="h-4 w-4 text-emerald-400" />
+                <span>Cinematic Media & Transformations</span>
+              </CardTitle>
+              <CardDescription>
+                Configure before/after reveal mechanics and video background parameters.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-6">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={designState.media.beforeAfterComparisonEnabled}
+                    onChange={(e) => handleMediaChange("beforeAfterComparisonEnabled", e.target.checked)}
+                    className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                  />
+                  <span>Enable Interactive Before/After Transformation Slider in Preview</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={designState.media.canvasFrameSequenceEnabled}
+                    onChange={(e) => handleMediaChange("canvasFrameSequenceEnabled", e.target.checked)}
+                    className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                  />
+                  <span>Reserve Canvas Frame Sequence Pipeline Slot</span>
+                </label>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* TAB 2: PRESETS */}
       {activeTab === "preset" && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -357,7 +614,7 @@ export function DesignStudioView({ project }: DesignStudioProps) {
         </div>
       )}
 
-      {/* TAB 2: COLOR TOKENS */}
+      {/* TAB 3: COLOR TOKENS */}
       {activeTab === "colors" && (
         <Card className="border-slate-800 bg-slate-950/60">
           <CardHeader>
@@ -366,7 +623,7 @@ export function DesignStudioView({ project }: DesignStudioProps) {
               <span>Custom Color Tokens</span>
             </CardTitle>
             <CardDescription>
-              Fine-tune the individual color tokens. Custom hex values override any preset foundation.
+              Fine-tune individual color tokens. Custom hex values override any preset foundation.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -416,7 +673,7 @@ export function DesignStudioView({ project }: DesignStudioProps) {
         </Card>
       )}
 
-      {/* TAB 3: TYPOGRAPHY */}
+      {/* TAB 4: TYPOGRAPHY */}
       {activeTab === "typography" && (
         <Card className="border-slate-800 bg-slate-950/60">
           <CardHeader>
@@ -430,7 +687,6 @@ export function DesignStudioView({ project }: DesignStudioProps) {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Heading Font */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                   Heading Font Family
@@ -449,7 +705,6 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                 <p className="text-[11px] text-slate-400">Used for H1 hero titles, section headlines, and banners.</p>
               </div>
 
-              {/* Body Font */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                   Body Font Family
@@ -469,7 +724,6 @@ export function DesignStudioView({ project }: DesignStudioProps) {
               </div>
             </div>
 
-            {/* Typography Live Preview */}
             <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
               <span className="text-[10px] font-mono uppercase text-indigo-400">Live Typography Scale Preview</span>
               <h2
@@ -489,7 +743,7 @@ export function DesignStudioView({ project }: DesignStudioProps) {
         </Card>
       )}
 
-      {/* TAB 4: LAYOUT & MOTION */}
+      {/* TAB 5: LAYOUT & MOTION */}
       {activeTab === "layout" && (
         <Card className="border-slate-800 bg-slate-950/60">
           <CardHeader>
@@ -503,7 +757,6 @@ export function DesignStudioView({ project }: DesignStudioProps) {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Layout Style */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                   Layout Structure
@@ -517,10 +770,8 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                   <option value="full-width">Full-Width Edge-to-Edge</option>
                   <option value="asymmetric">Asymmetric Agency Grid</option>
                 </select>
-                <p className="text-[11px] text-slate-400">Container constraint and structural alignment.</p>
               </div>
 
-              {/* Border Radius */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                   Border Radius
@@ -536,10 +787,8 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                   <option value="0.75rem">Modern Curved (12px)</option>
                   <option value="1rem">Pill / Soft Curved (16px)</option>
                 </select>
-                <p className="text-[11px] text-slate-400">Corner roundness applied across cards, inputs, and buttons.</p>
               </div>
 
-              {/* Animation Intensity */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                   Animation Intent
@@ -556,14 +805,13 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                   <option value="cinematic">Cinematic (Staggered reveals)</option>
                   <option value="energetic">Energetic (Dynamic springs)</option>
                 </select>
-                <p className="text-[11px] text-slate-400">Scroll trigger and interaction transition speed.</p>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* TAB 5: SECTIONS BLUEPRINT */}
+      {/* TAB 6: SECTIONS BLUEPRINT */}
       {activeTab === "sections" && (
         <Card className="border-slate-800 bg-slate-950/60">
           <CardHeader>
@@ -616,7 +864,6 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                 </div>
 
                 <div className="flex items-center gap-2 self-end sm:self-auto">
-                  {/* Reorder Buttons */}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -638,7 +885,6 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                     <MoveDown className="h-4 w-4" />
                   </Button>
 
-                  {/* Toggle Button */}
                   <Button
                     variant={section.enabled ? "secondary" : "outline"}
                     size="sm"
@@ -691,4 +937,3 @@ export function DesignStudioView({ project }: DesignStudioProps) {
     </div>
   );
 }
-

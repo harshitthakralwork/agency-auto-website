@@ -17,6 +17,56 @@ export const hotelsBanquetsPack: CategoryPack = {
     "Event RFP & Inquiry Generator",
     "Concierge & Local Destination Guides",
   ],
+  experienceAdaptations: {
+    STANDARD: {
+      level: "STANDARD",
+      title: "Direct Hospitality & Booking",
+      tagline: "Clear room listings, pricing breakdowns, and direct reservation forms",
+      characteristics: [
+        "Structured suite cards with amenity icons",
+        "Clean date range picker and guest selectors",
+        "Transparent banquet capacity matrices",
+      ],
+      recommendedComponents: ["RoomGrid", "AvailabilityPicker", "BallroomCapacityTable", "InquiryForm"],
+    },
+    CINEMATIC: {
+      level: "CINEMATIC",
+      title: "Sensory Property Storytelling",
+      tagline: "Golden hour drone cinematography, day-to-night transitions, and audio-visual romance",
+      characteristics: [
+        "Full-screen 4K ambient video backgrounds transitioning smoothly on scroll",
+        "Day-to-night ballroom lighting reveal via Before/After interactive slider",
+        "Pinned suite overview with synchronized room feature cards",
+      ],
+      recommendedComponents: ["PropertyDroneHero", "DayToNightSlider", "CinematicSuiteCarousel", "AtmosphericVideoLoop"],
+    },
+    IMMERSIVE_3D: {
+      level: "IMMERSIVE_3D",
+      title: "Interactive Spatial Digital Twin",
+      tagline: "360-degree interactive 3D suites, event halls, and grounds walkthrough",
+      characteristics: [
+        "Full 3D WebGL ballroom model with real-time customizable table seating arrangements",
+        "Interactive 3D presidential suite with camera orbit and view outside balcony",
+        "Spatial soundscapes reacting to camera proximity",
+      ],
+      recommendedComponents: ["BallroomConfigurator3D", "SuiteSpatialWalkthrough", "BalconyPanoramicViewer"],
+    },
+  },
+  visualAssetRequirements: {
+    imageStandard: "Architectural interior and exterior photography in warm luxury grading (min 3840x2160).",
+    videoFormat: "4K 60fps cinematic drone flyovers, slow-pan interior details, and evening banquet celebrations.",
+    frameSequenceSpecs: "180-frame smooth sequence showing grand ballroom lighting transition from sunlight to evening chandelier glow.",
+    threeDModelSpecs: "Architectural GLTF/GLB models of suites and banquet halls with baked ambient occlusion and PBR materials under 15MB.",
+  },
+  animationRecommendations: [
+    "Slow luxury parallax scrolling simulating unhurried prestige.",
+    "Curtain-reveal scene transitions between accommodations and dining venues.",
+    "Pinned hero section revealing availability widget as user engages with property visuals.",
+  ],
+  seoAndAccessibility: [
+    "High-contrast text alternatives for low-contrast champagne/cream luxury tones.",
+    "Schema.org Hotel and BanquetHall rich snippets with pricing and star rating.",
+  ],
   recommendedPages: [
     { id: "home", name: "Home", slug: "/", description: "Immersive hero showcasing rooms, events, and atmosphere", isPrimary: true },
     { id: "rooms", name: "Rooms & Suites", slug: "/rooms-suites", description: "Detailed accommodations with amenities and nightly rates", isPrimary: true },
@@ -32,10 +82,14 @@ export const hotelsBanquetsPack: CategoryPack = {
       description: "Full-bleed visual video header with check-in/out and guest selector.",
       defaultEnabled: true,
       order: 1,
+      cinematicHook: "Full-screen sunset drone footage sweeping across resort gardens into the illuminated grand entryway.",
+      threeDHook: "3D resort aerial grounds map with interactive clickable amenity hotspots.",
       previewSnippet: {
         headline: "Where Timeless Grandeur Meets Modern Indulgence",
         subheadline: "Experience bespoke hospitality, private suites, and world-class culinary art.",
         actionLabel: "Reserve Your Stay",
+        beforeLabel: "Daylight Mountain View",
+        afterLabel: "Sunset Chandelier Glow",
       },
     },
     {
@@ -56,10 +110,14 @@ export const hotelsBanquetsPack: CategoryPack = {
       description: "Square footage, guest capacity, and lighting setups for weddings and galas.",
       defaultEnabled: true,
       order: 3,
+      cinematicHook: "Interactive Before/After slider showing empty ballroom transforming into an illuminated 500-guest gala wedding.",
+      threeDHook: "Interactive 3D ballroom floorplan allowing table placement and lighting adjustment.",
       previewSnippet: {
         headline: "Majestic Banquets & Celebrations",
         subheadline: "Accommodating up to 800 guests across 15,000 sq. ft. of crystal-chandeliered ballrooms.",
         actionLabel: "Download Wedding Brochure",
+        beforeLabel: "Empty Architectural Ballroom",
+        afterLabel: "Fully Decorated Wedding Gala",
       },
     },
     {

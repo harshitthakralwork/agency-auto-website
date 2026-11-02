@@ -12,6 +12,7 @@ export const projectCreateSchema = z.object({
   ], {
     message: "Please select a valid business category",
   }),
+  experienceLevel: z.enum(["STANDARD", "CINEMATIC", "IMMERSIVE_3D"]).optional().default("CINEMATIC"),
   location: z.string().max(100).optional().default(""),
   description: z.string().max(1000).optional().default(""),
   services: z.string().max(1000).optional().default(""),
@@ -42,6 +43,7 @@ export const projectUpdateSchema = z.object({
     "fitness-sports",
     "salon-beauty",
   ]).optional(),
+  experienceLevel: z.enum(["STANDARD", "CINEMATIC", "IMMERSIVE_3D"]).optional(),
   location: z.string().max(100).optional().nullable(),
   description: z.string().max(1000).optional().nullable(),
   services: z.string().max(1000).optional(),

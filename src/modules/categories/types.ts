@@ -1,3 +1,5 @@
+export type ExperienceLevel = "STANDARD" | "CINEMATIC" | "IMMERSIVE_3D";
+
 export interface CategoryPageRecommendation {
   id: string;
   name: string;
@@ -12,11 +14,30 @@ export interface CategorySectionRecommendation {
   description: string;
   defaultEnabled: boolean;
   order: number;
+  cinematicHook?: string;
+  threeDHook?: string;
   previewSnippet?: {
     headline: string;
     subheadline: string;
     actionLabel?: string;
+    beforeLabel?: string;
+    afterLabel?: string;
   };
+}
+
+export interface ExperienceLevelAdaptation {
+  level: ExperienceLevel;
+  title: string;
+  tagline: string;
+  characteristics: string[];
+  recommendedComponents: string[];
+}
+
+export interface VisualAssetRequirements {
+  imageStandard: string;
+  videoFormat: string;
+  frameSequenceSpecs?: string;
+  threeDModelSpecs?: string;
 }
 
 export interface CategoryPack {
@@ -28,6 +49,10 @@ export interface CategoryPack {
   badgeColor: string;
   suggestedPreset: "cinematic" | "minimal" | "luxury" | "creative" | "corporate";
   keyFeatures: string[];
+  experienceAdaptations: Record<ExperienceLevel, ExperienceLevelAdaptation>;
+  visualAssetRequirements: VisualAssetRequirements;
+  animationRecommendations: string[];
+  seoAndAccessibility: string[];
   recommendedPages: CategoryPageRecommendation[];
   recommendedSections: CategorySectionRecommendation[];
 }

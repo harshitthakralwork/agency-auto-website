@@ -67,6 +67,7 @@ export async function PATCH(
     }
 
     const {
+      experienceLevel,
       preset,
       primaryColor,
       secondaryColor,
@@ -83,6 +84,8 @@ export async function PATCH(
       containerWidth,
       animationIntensity,
       enableCanvasFx,
+      threeD,
+      media,
       sections,
     } = parsed.data;
 
@@ -90,6 +93,7 @@ export async function PATCH(
       where: { projectId: id },
       create: {
         projectId: id,
+        experienceLevel: experienceLevel || project.experienceLevel,
         preset,
         primaryColor,
         secondaryColor,
@@ -106,9 +110,12 @@ export async function PATCH(
         containerWidth,
         animationIntensity,
         enableCanvasFx,
+        threeDPreferences: JSON.stringify(threeD || {}),
+        mediaPreferences: JSON.stringify(media || {}),
         sectionsConfigJson: JSON.stringify(sections),
       },
       update: {
+        experienceLevel: experienceLevel || project.experienceLevel,
         preset,
         primaryColor,
         secondaryColor,
@@ -125,14 +132,19 @@ export async function PATCH(
         containerWidth,
         animationIntensity,
         enableCanvasFx,
+        threeDPreferences: JSON.stringify(threeD || {}),
+        mediaPreferences: JSON.stringify(media || {}),
         sectionsConfigJson: JSON.stringify(sections),
       },
     });
 
-    // Touch project updatedAt
+    // Also sync project table experienceLevel and updatedAt
     await db.project.update({
       where: { id },
-      data: { updatedAt: new Date() },
+      data: {
+        experienceLevel: experienceLevel || project.experienceLevel,
+        updatedAt: new Date(),
+      },
     });
 
     return NextResponse.json({ success: true, data: updatedConfig });

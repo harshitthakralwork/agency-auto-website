@@ -1,14 +1,18 @@
 import { DESIGN_PRESETS } from "./presets";
 import {
   DesignPresetId,
+  ExperienceLevel,
   ProjectDesignState,
   SectionConfigItem,
+  ThreeDPreferences,
+  MediaPreferences,
 } from "./types";
 import { getDefaultSectionsForCategory } from "../categories/registry";
 
 export function resolveDesignState(
   categoryId: string,
   rawConfig?: {
+    experienceLevel?: string | null;
     preset?: string | null;
     primaryColor?: string | null;
     secondaryColor?: string | null;
@@ -25,10 +29,14 @@ export function resolveDesignState(
     containerWidth?: string | null;
     animationIntensity?: string | null;
     enableCanvasFx?: boolean | null;
+    mediaPreferences?: string | null;
+    threeDPreferences?: string | null;
     sectionsConfigJson?: string | null;
     responsiveSettings?: string | null;
   } | null
 ): ProjectDesignState {
+  const experienceLevel =
+    (rawConfig?.experienceLevel as ExperienceLevel) || "CINEMATIC";
   const presetKey = (rawConfig?.preset as DesignPresetId) || "cinematic";
   const basePreset =
     presetKey in DESIGN_PRESETS
@@ -44,13 +52,43 @@ export function resolveDesignState(
         sections = parsed;
       }
     } catch {
-      // Fallback
       sections = [];
     }
   }
 
   if (sections.length === 0) {
     sections = getDefaultSectionsForCategory(categoryId);
+  }
+
+  // Parse 3D Preferences
+  let threeD: ThreeDPreferences = {
+    objectType: experienceLevel === "IMMERSIVE_3D" ? "product_model" : "none",
+    scrollInteraction: experienceLevel === "IMMERSIVE_3D" ? "rotate_on_scroll" : "none",
+    lightingEnvironment: "studio",
+    wireframeMode: false,
+    autoRotate: true,
+  };
+  if (rawConfig?.threeDPreferences) {
+    try {
+      const parsed = JSON.parse(rawConfig.threeDPreferences);
+      threeD = { ...threeD, ...parsed };
+    } catch {
+      // Keep default
+    }
+  }
+
+  // Parse Media Preferences
+  let media: MediaPreferences = {
+    canvasFrameSequenceEnabled: experienceLevel === "CINEMATIC",
+    beforeAfterComparisonEnabled: true,
+  };
+  if (rawConfig?.mediaPreferences) {
+    try {
+      const parsed = JSON.parse(rawConfig.mediaPreferences);
+      media = { ...media, ...parsed };
+    } catch {
+      // Keep default
+    }
   }
 
   let responsiveSettings: Record<string, unknown> = {};
@@ -63,6 +101,7 @@ export function resolveDesignState(
   }
 
   return {
+    experienceLevel,
     preset: presetKey,
     colors: {
       primary: rawConfig?.primaryColor || basePreset.colors.primary,
@@ -91,6 +130,8 @@ export function resolveDesignState(
         basePreset.animation.animationIntensity,
       enableCanvasFx: rawConfig?.enableCanvasFx ?? basePreset.animation.enableCanvasFx,
     },
+    threeD,
+    media,
     sections,
     responsiveSettings,
   };

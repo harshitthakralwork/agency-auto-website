@@ -58,11 +58,21 @@ export async function PATCH(
 
     const updated = await db.project.update({
       where: { id },
-      data: parsed.data,
+      data: {
+        ...parsed.data,
+      },
       include: {
         designConfig: true,
       },
     });
+
+    // If experienceLevel was updated, also sync designConfig experienceLevel
+    if (parsed.data.experienceLevel) {
+      await db.projectDesignConfig.updateMany({
+        where: { projectId: id },
+        data: { experienceLevel: parsed.data.experienceLevel },
+      });
+    }
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {

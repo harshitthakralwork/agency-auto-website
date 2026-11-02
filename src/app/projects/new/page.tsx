@@ -11,6 +11,9 @@ import {
   CheckCircle2,
   Building,
   AlertCircle,
+  Layout,
+  Box,
+  Monitor,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +31,7 @@ export default function NewProjectPage() {
   // Form State
   const [name, setName] = useState("");
   const [category, setCategory] = useState("healthcare");
+  const [experienceLevel, setExperienceLevel] = useState<"STANDARD" | "CINEMATIC" | "IMMERSIVE_3D">("CINEMATIC");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [services, setServices] = useState("");
@@ -49,6 +53,7 @@ export default function NewProjectPage() {
         body: JSON.stringify({
           name,
           category,
+          experienceLevel,
           location,
           description,
           services,
@@ -99,7 +104,7 @@ export default function NewProjectPage() {
               Initialize Client Website Project
             </h1>
             <p className="text-xs text-slate-400">
-              Set up business parameters, industry specifications, and initial design tokens.
+              Configure business parameters, experience tier (Standard / Cinematic / 3D), and design tokens.
             </p>
           </div>
         </div>
@@ -113,12 +118,123 @@ export default function NewProjectPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Step 1: Business Identity */}
+        {/* Step 1: Experience Level Selection */}
+        <Card className="border-indigo-900/60 bg-gradient-to-br from-indigo-950/30 to-slate-950">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-indigo-400" />
+                <span>1. Choose Website Experience Level</span>
+              </CardTitle>
+              <span className="text-[11px] font-mono text-indigo-400 bg-indigo-950 px-2 py-0.5 rounded border border-indigo-800/60">
+                Core Production Tier
+              </span>
+            </div>
+            <CardDescription>
+              Select the interaction complexity and motion architecture engineered for this client.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Level 1: Standard */}
+              <div
+                onClick={() => setExperienceLevel("STANDARD")}
+                className={cn(
+                  "p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between",
+                  experienceLevel === "STANDARD"
+                    ? "border-slate-400 bg-slate-900/90 ring-1 ring-slate-400 shadow-lg"
+                    : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                )}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-white uppercase tracking-wider">
+                      <Layout className="h-3.5 w-3.5 text-slate-400" />
+                      Level 1 • Standard
+                    </span>
+                    {experienceLevel === "STANDARD" && (
+                      <CheckCircle2 className="h-4 w-4 text-slate-300 shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-xs font-medium text-slate-300">Clean & Functional</p>
+                  <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                    Responsive, high-contrast layouts, image galleries, business lead forms, and fast SEO structure.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500">
+                  Subtle transitions • High accessibility
+                </div>
+              </div>
+
+              {/* Level 2: Cinematic */}
+              <div
+                onClick={() => setExperienceLevel("CINEMATIC")}
+                className={cn(
+                  "p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between",
+                  experienceLevel === "CINEMATIC"
+                    ? "border-indigo-500 bg-indigo-950/40 ring-1 ring-indigo-500 shadow-xl"
+                    : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                )}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Level 2 • Cinematic
+                    </span>
+                    {experienceLevel === "CINEMATIC" && (
+                      <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-xs font-medium text-indigo-200">Motion & Transformations</p>
+                  <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                    Full-bleed video hero sections, before/after split sliders, pinned scroll reveals, and canvas storytelling.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-800/80 text-[10px] font-mono text-indigo-400">
+                  Scroll storytelling • Video choreography
+                </div>
+              </div>
+
+              {/* Level 3: Immersive 3D */}
+              <div
+                onClick={() => setExperienceLevel("IMMERSIVE_3D")}
+                className={cn(
+                  "p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between",
+                  experienceLevel === "IMMERSIVE_3D"
+                    ? "border-violet-500 bg-violet-950/40 ring-1 ring-violet-500 shadow-xl"
+                    : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                )}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-violet-400 uppercase tracking-wider">
+                      <Box className="h-3.5 w-3.5" />
+                      Level 3 • Immersive 3D
+                    </span>
+                    {experienceLevel === "IMMERSIVE_3D" && (
+                      <CheckCircle2 className="h-4 w-4 text-violet-400 shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-xs font-medium text-violet-200">Interactive WebGL</p>
+                  <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                    Interactive 3D models, scroll-driven object rotation, camera movement, and spatial environments.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-800/80 text-[10px] font-mono text-violet-400">
+                  Three.js / WebGL • Spatial interaction
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Step 2: Business Identity */}
         <Card className="border-slate-800 bg-slate-950/60">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Building className="h-4 w-4 text-indigo-400" />
-              <span>1. Client & Business Identity</span>
+              <span>2. Client & Business Identity</span>
             </CardTitle>
             <CardDescription>
               Core client identification used for metadata, content anchors, and headers.
@@ -158,7 +274,7 @@ export default function NewProjectPage() {
               />
               <Input
                 label="Target Audience"
-                placeholder="e.g. Working professionals and families seeking premium dental care"
+                placeholder="e.g. Working professionals and families seeking premium care"
                 value={targetAudience}
                 onChange={(e) => setTargetAudience(e.target.value)}
               />
@@ -166,15 +282,15 @@ export default function NewProjectPage() {
           </CardContent>
         </Card>
 
-        {/* Step 2: Category Pack Selection */}
+        {/* Step 3: Category Pack Selection */}
         <Card className="border-slate-800 bg-slate-950/60">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Layers className="h-4 w-4 text-indigo-400" />
-              <span>2. Select Industry Pack</span>
+              <span>3. Select Industry Pack</span>
             </CardTitle>
             <CardDescription>
-              Each pack loads specialized recommended pages, sections, and domain-specific feature hooks.
+              Each pack defines specialized pages, domain sections, and experience-level adaptations.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -217,31 +333,29 @@ export default function NewProjectPage() {
             </div>
 
             {activeCategoryPack && (
-              <div className="rounded-lg bg-slate-900/90 border border-slate-800 p-3 text-xs space-y-1.5">
-                <p className="font-semibold text-slate-200">
-                  Recommended Pages for {activeCategoryPack.title}:
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {activeCategoryPack.recommendedPages.map((pg) => (
-                    <span
-                      key={pg.id}
-                      className="rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-300 font-mono"
-                    >
-                      {pg.name} ({pg.slug})
-                    </span>
-                  ))}
+              <div className="rounded-lg bg-slate-900/90 border border-slate-800 p-3 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-slate-200">
+                    Adaptation for {experienceLevel.replace("_", " ")}:
+                  </p>
+                  <span className="text-[10px] font-mono text-indigo-400">
+                    {activeCategoryPack.experienceAdaptations[experienceLevel].title}
+                  </span>
                 </div>
+                <p className="text-[11px] text-slate-400">
+                  {activeCategoryPack.experienceAdaptations[experienceLevel].tagline}
+                </p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Step 3: Initial Design Preset & Project Status */}
+        {/* Step 4: Initial Design Preset & Project Status */}
         <Card className="border-slate-800 bg-slate-950/60">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Palette className="h-4 w-4 text-pink-400" />
-              <span>3. Initial Design Preset & Pipeline State</span>
+              <span>4. Initial Design Preset & Pipeline State</span>
             </CardTitle>
             <CardDescription>
               Presets configure starting palettes and typography. All tokens remain 100% editable in the Design Studio.

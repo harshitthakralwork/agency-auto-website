@@ -6,6 +6,8 @@ export type DesignPresetId =
   | "corporate"
   | "custom";
 
+export type ExperienceLevel = "STANDARD" | "CINEMATIC" | "IMMERSIVE_3D";
+
 export interface ColorTokens {
   primary: string;
   secondary: string;
@@ -33,6 +35,36 @@ export interface AnimationTokens {
   enableCanvasFx: boolean;
 }
 
+export interface ThreeDPreferences {
+  objectType:
+    | "none"
+    | "product_model"
+    | "spatial_environment"
+    | "hero_floating_object"
+    | "interactive_particles";
+  scrollInteraction:
+    | "none"
+    | "rotate_on_scroll"
+    | "camera_zoom_pan"
+    | "exploded_view";
+  lightingEnvironment:
+    | "studio"
+    | "sunset"
+    | "dramatic_neon"
+    | "clinical_bright"
+    | "luxury_warm";
+  wireframeMode: boolean;
+  autoRotate: boolean;
+  fallbackImageUrl?: string;
+}
+
+export interface MediaPreferences {
+  heroVideoUrl?: string;
+  heroPosterUrl?: string;
+  canvasFrameSequenceEnabled: boolean;
+  beforeAfterComparisonEnabled: boolean;
+}
+
 export interface SectionConfigItem {
   id: string;
   name: string;
@@ -54,11 +86,14 @@ export interface DesignPreset {
 }
 
 export interface ProjectDesignState {
+  experienceLevel: ExperienceLevel;
   preset: DesignPresetId;
   colors: ColorTokens;
   typography: TypographyTokens;
   layout: LayoutTokens;
   animation: AnimationTokens;
+  threeD: ThreeDPreferences;
+  media: MediaPreferences;
   sections: SectionConfigItem[];
   responsiveSettings: Record<string, unknown>;
 }

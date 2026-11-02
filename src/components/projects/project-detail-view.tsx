@@ -19,11 +19,14 @@ import {
   CheckCircle,
   FileText,
   AlertTriangle,
+  Box,
+  Layout,
+  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
-import { StatusBadge, CategoryBadge } from "@/components/layout/status-badge";
+import { StatusBadge, CategoryBadge, ExperienceBadge } from "@/components/layout/status-badge";
 import { getCategoryPack } from "@/modules/categories/registry";
 import { formatDate } from "@/lib/utils";
 
@@ -33,6 +36,7 @@ interface ProjectDetailProps {
     name: string;
     slug: string;
     category: string;
+    experienceLevel: string;
     location: string | null;
     description: string | null;
     services: string;
@@ -41,6 +45,7 @@ interface ProjectDetailProps {
     createdAt: Date | string;
     updatedAt: Date | string;
     designConfig: {
+      experienceLevel: string;
       preset: string;
       primaryColor: string;
       secondaryColor: string;
@@ -50,6 +55,8 @@ interface ProjectDetailProps {
       bodyFont: string;
       layoutStyle: string;
       borderRadius: string;
+      threeDPreferences: string;
+      mediaPreferences: string;
       sectionsConfigJson: string;
     } | null;
   };
@@ -61,7 +68,8 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [currentStatus, setCurrentStatus] = useState(project.status);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [currentLevel, setCurrentLevel] = useState(project.experienceLevel);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const categoryPack = getCategoryPack(project.category);
 
@@ -73,6 +81,16 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
     }
   } catch {
     enabledSections = [];
+  }
+
+  // Parse 3D Preferences
+  let threeDPrefs: Record<string, unknown> = {};
+  try {
+    if (project.designConfig?.threeDPreferences) {
+      threeDPrefs = JSON.parse(project.designConfig.threeDPreferences);
+    }
+  } catch {
+    threeDPrefs = {};
   }
 
   const handleDelete = async () => {
@@ -97,7 +115,7 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    setIsUpdatingStatus(true);
+    setIsUpdating(true);
     try {
       const res = await fetch(`/api/projects/${project.id}`, {
         method: "PATCH",
@@ -111,9 +129,33 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsUpdatingStatus(false);
+      setIsUpdating(false);
     }
   };
+
+  const handleLevelChange = async (newLevel: string) => {
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ experienceLevel: newLevel }),
+      });
+      if (res.ok) {
+        setCurrentLevel(newLevel);
+        router.refresh();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const adaptation =
+    categoryPack.experienceAdaptations[
+      currentLevel as "STANDARD" | "CINEMATIC" | "IMMERSIVE_3D"
+    ] || categoryPack.experienceAdaptations.CINEMATIC;
 
   return (
     <div className="space-y-8 pb-16">
@@ -132,6 +174,7 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
               {project.name}
             </h1>
             <CategoryBadge categoryId={project.category} />
+            <ExperienceBadge level={currentLevel} />
             <StatusBadge status={currentStatus} />
           </div>
           <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-slate-400 font-mono">
@@ -150,10 +193,22 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Quick Experience Level Selector */}
+          <select
+            value={currentLevel}
+            disabled={isUpdating}
+            onChange={(e) => handleLevelChange(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+          >
+            <option value="STANDARD">Level 1 • Standard</option>
+            <option value="CINEMATIC">Level 2 • Cinematic</option>
+            <option value="IMMERSIVE_3D">Level 3 • Immersive 3D</option>
+          </select>
+
           {/* Quick Status Selector */}
           <select
             value={currentStatus}
-            disabled={isUpdatingStatus}
+            disabled={isUpdating}
             onChange={(e) => handleStatusChange(e.target.value)}
             className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
           >
@@ -196,6 +251,33 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
           </Button>
         </div>
       </div>
+
+      {/* Experience Tier Architecture Card */}
+      <Card className="border-indigo-900/60 bg-gradient-to-r from-indigo-950/40 via-slate-950 to-slate-900/40 p-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-indigo-400">
+                Active Experience Tier
+              </span>
+              <ExperienceBadge level={currentLevel} />
+            </div>
+            <h3 className="text-lg font-bold text-white">{adaptation.title}</h3>
+            <p className="text-xs text-slate-300 mt-1 max-w-2xl">{adaptation.tagline}</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 text-xs">
+            {adaptation.recommendedComponents.map((comp, idx) => (
+              <span
+                key={idx}
+                className="bg-slate-900/90 border border-slate-700/80 px-2.5 py-1 rounded-lg text-slate-200 font-mono text-[11px]"
+              >
+                {comp}
+              </span>
+            ))}
+          </div>
+        </div>
+      </Card>
 
       {/* Grid: Overview & Architecture Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -397,12 +479,17 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
                     {project.designConfig?.layoutStyle || "Modern Contained"}
                   </span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-slate-400">Border Radius:</span>
-                  <span className="font-mono text-slate-300">
-                    {project.designConfig?.borderRadius || "0.5rem"}
-                  </span>
-                </div>
+                {currentLevel === "IMMERSIVE_3D" && (
+                  <div className="flex justify-between py-1">
+                    <span className="text-violet-400 flex items-center gap-1">
+                      <Box className="h-3 w-3" />
+                      3D Model Object:
+                    </span>
+                    <span className="font-mono text-violet-300 capitalize">
+                      {String(threeDPrefs.objectType || "Product Model")}
+                    </span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

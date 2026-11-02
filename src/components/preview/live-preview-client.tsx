@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import {
   Monitor,
   Tablet,
   Smartphone,
   ArrowLeft,
-  ExternalLink,
   ShieldAlert,
   Sparkles,
   Palette,
@@ -15,13 +14,18 @@ import {
   Clock,
   MapPin,
   ChevronRight,
-  Phone,
-  Calendar,
+  Box,
   Layers,
+  RotateCw,
+  Sun,
+  Maximize2,
+  Sliders,
+  MoveHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { resolveDesignState, generateCssVariables } from "@/modules/design/resolver";
 import { getCategoryPack } from "@/modules/categories/registry";
+import { ExperienceBadge } from "@/components/layout/status-badge";
 
 interface LivePreviewProps {
   project: {
@@ -29,12 +33,14 @@ interface LivePreviewProps {
     name: string;
     slug: string;
     category: string;
+    experienceLevel: string;
     location: string | null;
     description: string | null;
     services: string;
     targetAudience: string | null;
     status: string;
     designConfig: {
+      experienceLevel?: string;
       preset: string;
       primaryColor: string;
       secondaryColor: string;
@@ -51,6 +57,8 @@ interface LivePreviewProps {
       containerWidth: string;
       animationIntensity: string;
       enableCanvasFx: boolean;
+      threeDPreferences?: string;
+      mediaPreferences?: string;
       sectionsConfigJson: string;
       responsiveSettings: string;
     } | null;
@@ -60,8 +68,30 @@ interface LivePreviewProps {
 export function LivePreviewClient({ project }: LivePreviewProps) {
   const [viewport, setViewport] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const categoryPack = getCategoryPack(project.category);
-  const design = resolveDesignState(project.category, project.designConfig);
+  const design = resolveDesignState(project.category, {
+    ...project.designConfig,
+    experienceLevel: project.experienceLevel,
+  });
   const themeVars = generateCssVariables(design);
+
+  // Before/After Slider state for Cinematic level
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  // 3D Canvas Mockup state for Immersive 3D level
+  const [rotationX, setRotationX] = useState(15);
+  const [rotationY, setRotationY] = useState(35);
+  const [isWireframe, setIsWireframe] = useState(design.threeD.wireframeMode);
+  const [activeLighting, setActiveLighting] = useState(design.threeD.lightingEnvironment);
+
+  // Handle before/after drag
+  const handleSliderMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    if (!sliderRef.current) return;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const pos = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    setSliderPosition(pos);
+  };
 
   // Enabled sections sorted by order
   const activeSections = design.sections
@@ -93,11 +123,9 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
             <span className="text-xs font-bold text-white uppercase tracking-wider">
               {project.name}
             </span>
+            <ExperienceBadge level={design.experienceLevel} />
             <span className="rounded bg-indigo-950 px-2 py-0.5 text-[10px] font-mono text-indigo-400 border border-indigo-800/60">
               {categoryPack.title}
-            </span>
-            <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-mono text-slate-300">
-              {design.preset}
             </span>
           </div>
         </div>
@@ -165,7 +193,7 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
           >
             {/* Top Navigation Bar of the Client Website */}
             <header
-              className="sticky top-0 z-30 border-b transition-colors px-6 py-4 flex items-center justify-between"
+              className="sticky top-0 z-30 border-b transition-colors px-6 py-4 flex items-center justify-between backdrop-blur-md"
               style={{
                 backgroundColor: "var(--theme-surface)",
                 borderColor: "rgba(148, 163, 184, 0.15)",
@@ -189,7 +217,7 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                 </span>
               </div>
 
-              {/* Navigation Links (from category pack recommended pages) */}
+              {/* Navigation Links */}
               <nav className="hidden md:flex items-center gap-6 text-sm">
                 {categoryPack.recommendedPages.slice(0, 4).map((page) => (
                   <span
@@ -202,16 +230,214 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                 ))}
               </nav>
 
-              <button
-                className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white shadow-md transition-transform hover:scale-105"
+              <div className="flex items-center gap-3">
+                <button
+                  className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white shadow-md transition-transform hover:scale-105"
+                  style={{
+                    backgroundColor: "var(--theme-primary)",
+                    borderRadius: "var(--theme-radius)",
+                  }}
+                >
+                  Inquire / Book
+                </button>
+              </div>
+            </header>
+
+            {/* LEVEL 3: INTERACTIVE 3D EXPERIENCE SPOTLIGHT */}
+            {design.experienceLevel === "IMMERSIVE_3D" && (
+              <section
+                className="py-12 px-6 md:px-12 border-b relative overflow-hidden"
                 style={{
-                  backgroundColor: "var(--theme-primary)",
-                  borderRadius: "var(--theme-radius)",
+                  backgroundColor: "var(--theme-surface)",
+                  borderColor: "rgba(148, 163, 184, 0.2)",
                 }}
               >
-                Inquire / Book
-              </button>
-            </header>
+                <div
+                  className="mx-auto flex flex-col lg:flex-row items-center gap-8 justify-between"
+                  style={{ maxWidth: design.layout.containerWidth }}
+                >
+                  <div className="space-y-4 max-w-xl">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-bold bg-violet-950/80 text-violet-300 border border-violet-800">
+                      <Box className="h-3.5 w-3.5 text-violet-400" />
+                      <span>LEVEL 3 INTERACTIVE 3D WEBGL ENGINE HOOK</span>
+                    </div>
+
+                    <h2
+                      className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight"
+                      style={{ fontFamily: "var(--theme-heading-font)" }}
+                    >
+                      Interactive Spatial {categoryPack.title} Experience
+                    </h2>
+
+                    <p className="text-sm md:text-base leading-relaxed" style={{ color: "var(--theme-muted)" }}>
+                      Drag or swipe to rotate the 3D model. In Phase 2, this slot connects to full Three.js / React Three Fiber models with scroll-triggered camera orbits.
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-3 pt-2">
+                      <button
+                        onClick={() => setIsWireframe(!isWireframe)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-all cursor-pointer ${
+                          isWireframe
+                            ? "bg-violet-600 text-white border-violet-500"
+                            : "bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
+                        }`}
+                      >
+                        Wireframe: {isWireframe ? "ON" : "OFF"}
+                      </button>
+
+                      <div className="flex items-center gap-2 text-xs font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                        <Sun className="h-3.5 w-3.5 text-amber-400" />
+                        <span className="capitalize">{activeLighting} Light</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3D Interactive Canvas Mockup */}
+                  <div
+                    onMouseMove={(e) => {
+                      if (e.buttons === 1) {
+                        setRotationY((prev) => prev + e.movementX * 0.8);
+                        setRotationX((prev) => Math.max(-60, Math.min(60, prev - e.movementY * 0.8)));
+                      }
+                    }}
+                    className="w-full max-w-md h-80 rounded-2xl border flex flex-col items-center justify-center p-6 relative cursor-grab active:cursor-grabbing select-none shadow-2xl"
+                    style={{
+                      backgroundColor: "var(--theme-bg)",
+                      borderColor: "var(--theme-primary)",
+                      borderRadius: "var(--theme-radius)",
+                      perspective: "800px",
+                    }}
+                  >
+                    {/* Simulated 3D Mesh Geometry */}
+                    <div
+                      className="transition-transform duration-75 relative flex items-center justify-center"
+                      style={{
+                        transform: `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`,
+                        transformStyle: "preserve-3d",
+                      }}
+                    >
+                      {/* 3D Polyhedron / Diamond prism representation */}
+                      <div
+                        className={`h-40 w-40 rounded-2xl flex flex-col items-center justify-center text-center p-4 border-2 shadow-2xl ${
+                          isWireframe ? "bg-transparent border-dashed" : "backdrop-blur-md"
+                        }`}
+                        style={{
+                          borderColor: "var(--theme-primary)",
+                          backgroundColor: isWireframe
+                            ? "transparent"
+                            : "rgba(99, 102, 241, 0.15)",
+                          boxShadow: `0 20px 50px rgba(0,0,0,0.5)`,
+                        }}
+                      >
+                        <Box className="h-12 w-12 text-violet-400 animate-pulse mb-2" />
+                        <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                          {design.threeD.objectType.replace("_", " ")}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 mt-1">
+                          GLTF/GLB WebGL Mesh
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                      <span>Drag to Orbit: X: {Math.round(rotationX)}° | Y: {Math.round(rotationY)}°</span>
+                      <span className="text-violet-400">R3F / Three.js Slot</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* LEVEL 2: CINEMATIC BEFORE/AFTER TRANSFORMATION SLIDER (Inspired by visual reference) */}
+            {design.experienceLevel === "CINEMATIC" && design.media.beforeAfterComparisonEnabled && (
+              <section
+                className="py-16 md:py-20 px-6 md:px-12 border-b relative"
+                style={{
+                  backgroundColor: "var(--theme-bg)",
+                  borderColor: "rgba(148, 163, 184, 0.15)",
+                }}
+              >
+                <div className="mx-auto" style={{ maxWidth: design.layout.containerWidth }}>
+                  <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-950/80 text-indigo-300 border border-indigo-800">
+                      <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+                      <span>LEVEL 2 CINEMATIC TRANSFORMATION SLIDER</span>
+                    </div>
+                    <h2
+                      className="text-3xl md:text-4xl font-extrabold tracking-tight"
+                      style={{ fontFamily: "var(--theme-heading-font)" }}
+                    >
+                      The Power of Complete Transformation
+                    </h2>
+                    <p className="text-xs md:text-sm" style={{ color: "var(--theme-muted)" }}>
+                      Drag the center handle horizontally to inspect the dramatic before & after reveal.
+                    </p>
+                  </div>
+
+                  {/* Interactive Before/After Split Frame */}
+                  <div
+                    ref={sliderRef}
+                    onMouseMove={(e) => {
+                      if (e.buttons === 1) handleSliderMove(e);
+                    }}
+                    onClick={handleSliderMove}
+                    onTouchMove={handleSliderMove}
+                    className="relative w-full max-w-4xl mx-auto h-[380px] md:h-[440px] rounded-2xl overflow-hidden cursor-ew-resize select-none border shadow-2xl"
+                    style={{
+                      borderColor: "rgba(148, 163, 184, 0.25)",
+                      borderRadius: "var(--theme-radius)",
+                    }}
+                  >
+                    {/* AFTER Panel (Full base) */}
+                    <div
+                      className="absolute inset-0 flex flex-col justify-end p-8 text-white bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950"
+                    >
+                      <div className="max-w-md space-y-2 relative z-10">
+                        <span className="px-2.5 py-1 rounded text-xs font-mono font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                          After Transformation
+                        </span>
+                        <h3 className="text-2xl font-bold">
+                          {categoryPack.recommendedSections.find((s) => s.id === activeSections[0]?.id)?.previewSnippet?.afterLabel || "Pristine Luxury Perfection"}
+                        </h3>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          Ceramic-coated finish, bespoke styling, and flawless outcome engineered by our master specialists.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* BEFORE Panel (Clipped by sliderPosition) */}
+                    <div
+                      className="absolute inset-0 flex flex-col justify-end p-8 text-slate-300 bg-gradient-to-tr from-stone-950 via-stone-900 to-neutral-900 border-r-2 border-white"
+                      style={{
+                        clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)`,
+                      }}
+                    >
+                      <div className="max-w-md space-y-2 relative z-10">
+                        <span className="px-2.5 py-1 rounded text-xs font-mono font-bold uppercase bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                          Initial Raw State
+                        </span>
+                        <h3 className="text-2xl font-bold text-white">
+                          {categoryPack.recommendedSections.find((s) => s.id === activeSections[0]?.id)?.previewSnippet?.beforeLabel || "Raw Wear & Baseline Condition"}
+                        </h3>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          Initial evaluation showing surface wear, stress, and unrefined aesthetics prior to bespoke treatment.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Drag Handle Divider */}
+                    <div
+                      className="absolute top-0 bottom-0 w-1 bg-white shadow-2xl flex items-center justify-center pointer-events-none"
+                      style={{ left: `${sliderPosition}%` }}
+                    >
+                      <div className="h-10 w-10 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-2xl -ml-0.5">
+                        <MoveHorizontal className="h-5 w-5" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
 
             {/* SECTIONS RENDER LOOP */}
             <main className="flex-1 flex flex-col">
@@ -240,7 +466,6 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                     "";
                   const actionLabel = matchingRec?.previewSnippet?.actionLabel;
 
-                  // Alternating section surface for visual contrast
                   const isEven = idx % 2 === 0;
 
                   return (
@@ -288,7 +513,7 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                           </p>
                         )}
 
-                        {/* CTA Button if present */}
+                        {/* CTA Buttons */}
                         {actionLabel && (
                           <div className="mt-8 flex flex-wrap gap-4">
                             <button
@@ -315,7 +540,7 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                           </div>
                         )}
 
-                        {/* Feature Grid / Cards inside section */}
+                        {/* Services Grid */}
                         {idx === 1 && project.services && (
                           <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                             {project.services.split(",").map((service, sIdx) => (
@@ -385,7 +610,7 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                     </p>
                   )}
                   <p className="text-[11px] text-slate-500 mt-2 font-mono">
-                    Powered by Agency Website Engine • Draft Mode
+                    Experience Tier: {design.experienceLevel} • Agency Production Engine
                   </p>
                 </div>
 
@@ -404,4 +629,3 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
     </div>
   );
 }
-
