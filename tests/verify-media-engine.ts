@@ -37,8 +37,8 @@ async function runMediaTests() {
   try {
     // 1. Validation Engine Rules
     console.log("--- 1. Testing Validation Engine & Constraints ---");
-    assert(ASSET_TYPES.length === 6, "All 6 asset types are defined (IMAGE, VIDEO, POSTER, BEFORE_IMAGE, AFTER_IMAGE, MODEL_3D)");
-    assert(ASSIGNED_SLOTS.length === 6, "All 6 designated slots are defined (HERO_BACKGROUND, BEFORE_SLOT, AFTER_SLOT, GALLERY, SECTION_BG, POSTER_FALLBACK)");
+    assert(ASSET_TYPES.length >= 6 && (ASSET_TYPES as readonly string[]).includes("FRAME_SEQUENCE"), "Asset types include base 6 plus FRAME_SEQUENCE");
+    assert(ASSIGNED_SLOTS.length >= 6 && (ASSIGNED_SLOTS as readonly string[]).includes("CANVAS_HERO_SEQUENCE"), "Designated slots include base 6 plus CANVAS_HERO_SEQUENCE");
     assert(ALLOWED_MIME_TYPES.IMAGE.includes("image/jpeg") && ALLOWED_MIME_TYPES.IMAGE.includes("image/webp"), "Image MIME types correctly allow JPEG and WebP");
     assert(ALLOWED_MIME_TYPES.VIDEO.includes("video/mp4") && ALLOWED_MIME_TYPES.VIDEO.includes("video/webm"), "Video MIME types correctly allow MP4 and WebM");
     assert(MAX_FILE_SIZES.VIDEO === 100 * 1024 * 1024, "Video file size limit is correctly budgeted at 100MB");

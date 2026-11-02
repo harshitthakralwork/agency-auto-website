@@ -7,6 +7,7 @@ export const ASSET_TYPES = [
   "BEFORE_IMAGE",
   "AFTER_IMAGE",
   "MODEL_3D",
+  "FRAME_SEQUENCE",
 ] as const;
 
 export const ASSIGNED_SLOTS = [
@@ -16,6 +17,7 @@ export const ASSIGNED_SLOTS = [
   "GALLERY",
   "SECTION_BG",
   "POSTER_FALLBACK",
+  "CANVAS_HERO_SEQUENCE",
 ] as const;
 
 export const ALLOWED_MIME_TYPES: Record<string, string[]> = {
@@ -25,6 +27,7 @@ export const ALLOWED_MIME_TYPES: Record<string, string[]> = {
   BEFORE_IMAGE: ["image/jpeg", "image/png", "image/webp"],
   AFTER_IMAGE: ["image/jpeg", "image/png", "image/webp"],
   MODEL_3D: ["model/gltf-binary", "model/gltf+json", "application/octet-stream"],
+  FRAME_SEQUENCE: ["application/json"],
 };
 
 export const ALLOWED_EXTENSIONS: Record<string, string[]> = {
@@ -34,6 +37,7 @@ export const ALLOWED_EXTENSIONS: Record<string, string[]> = {
   BEFORE_IMAGE: ["jpg", "jpeg", "png", "webp"],
   AFTER_IMAGE: ["jpg", "jpeg", "png", "webp"],
   MODEL_3D: ["glb", "gltf"],
+  FRAME_SEQUENCE: ["json"],
 };
 
 export const MAX_FILE_SIZES: Record<string, number> = {
@@ -43,6 +47,7 @@ export const MAX_FILE_SIZES: Record<string, number> = {
   BEFORE_IMAGE: 15 * 1024 * 1024, // 15MB
   AFTER_IMAGE: 15 * 1024 * 1024, // 15MB
   MODEL_3D: 50 * 1024 * 1024, // 50MB
+  FRAME_SEQUENCE: 10 * 1024 * 1024, // 10MB
 };
 
 export const assetUpdateSchema = z.object({

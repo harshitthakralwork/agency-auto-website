@@ -23,6 +23,7 @@ model Project {
 
   designConfig    ProjectDesignConfig?
   assets          ProjectAsset[]
+  videoJobs       VideoProcessingJob[]
 
   @@index([category])
   @@index([experienceLevel])
@@ -96,6 +97,8 @@ model ProjectAsset {
   assignedSlot    String?  // HERO_BACKGROUND, BEFORE_SLOT, AFTER_SLOT, GALLERY, SECTION_BG, POSTER_FALLBACK
   metadataJson    String   @default("{}")
 
+  videoJobs       VideoProcessingJob[]
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -103,3 +106,34 @@ model ProjectAsset {
   @@index([assetType])
   @@index([assignedSlot])
 }
+
+model VideoProcessingJob {
+  id              String       @id @default(cuid())
+  projectId       String
+  project         Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  videoAssetId    String
+  videoAsset      ProjectAsset @relation(fields: [videoAssetId], references: [id], onDelete: Cascade)
+
+  status          String       @default("QUEUED") // QUEUED, PROCESSING, COMPLETED, FAILED, CANCELLED
+  progress        Float        @default(0.0)      // 0.0 to 100.0
+  targetFps       Int          @default(24)       // 12, 24, 30
+  maxFrames       Int          @default(60)       // 30, 60, 120, 240
+  quality         String       @default("high")   // low, medium, high
+  outputFormat    String       @default("webp")   // webp, jpg, png
+  frameCount      Int?
+  duration        Float?
+  width           Int?
+  height          Int?
+  manifestUrl     String?
+  manifestPath    String?
+  errorMessage    String?
+  metadataJson    String       @default("{}")
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([projectId])
+  @@index([videoAssetId])
+  @@index([status])
+}
+

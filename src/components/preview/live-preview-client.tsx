@@ -28,6 +28,13 @@ import { Button } from "@/components/ui/button";
 import { resolveDesignState, generateCssVariables } from "@/modules/design/resolver";
 import { getCategoryPack } from "@/modules/categories/registry";
 import { ExperienceBadge } from "@/components/layout/status-badge";
+import {
+  CanvasFrameSequence,
+  ScrollReveal,
+  PinnedStorySection,
+  HorizontalScrollGallery,
+  ScrollTextSequence,
+} from "@/components/cinematic";
 
 interface LivePreviewProps {
   project: {
@@ -119,6 +126,38 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
     (a) => a.assignedSlot === "HERO_BACKGROUND" && a.assetType === "IMAGE"
   );
   const heroPoster = project.assets?.find((a) => a.assignedSlot === "POSTER_FALLBACK");
+  const frameSequenceAsset = project.assets?.find(
+    (a) =>
+      (a.assignedSlot === "CANVAS_HERO_SEQUENCE" || a.assignedSlot === "HERO_BACKGROUND") &&
+      (a.assetType === "FRAME_SEQUENCE" || a.fileName.endsWith(".json"))
+  );
+
+  // Pinned storytelling steps for Cinematic Level
+  const cinematicStorySteps = categoryPack.keyFeatures.slice(0, 3).map((feat, i) => ({
+    id: `story-step-${i}`,
+    title: feat,
+    description: `Engineered specifically for ${categoryPack.title} standards, delivering seamless digital elegance and verified customer confidence.`,
+    badge: `Phase 0${i + 1} Architecture`,
+    mediaUrl: heroImage?.fileUrl || beforeAsset?.fileUrl || undefined,
+  }));
+
+  // Horizontal gallery items
+  const galleryAssets = project.assets?.filter((a) => a.assetType === "IMAGE") || [];
+  const cinematicGalleryItems =
+    galleryAssets.length > 0
+      ? galleryAssets.slice(0, 5).map((a) => ({
+          id: a.id,
+          title: a.name,
+          category: categoryPack.title,
+          imageUrl: a.fileUrl,
+          description: `High-resolution visual asset assigned to project library.`,
+        }))
+      : categoryPack.recommendedPages.slice(0, 4).map((p, i) => ({
+          id: p.id,
+          title: p.name,
+          category: categoryPack.title,
+          description: p.description,
+        }));
 
   // Viewport container width constraints
   const viewportWidths = {
@@ -547,8 +586,22 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                         paddingRight: "var(--theme-section-padding-x)",
                       }}
                     >
+                      {/* Authentic Hero Canvas Frame Sequence if assigned to CANVAS_HERO_SEQUENCE or HERO_BACKGROUND */}
+                      {idx === 0 && frameSequenceAsset && (
+                        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-50" data-testid="hero-canvas-frame-sequence">
+                          <CanvasFrameSequence
+                            manifestUrl={frameSequenceAsset.fileUrl}
+                            posterUrl={heroPoster?.fileUrl}
+                            fitMode="cover"
+                            pinned={false}
+                            className="w-full h-full"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+                        </div>
+                      )}
+
                       {/* Authentic Hero Video Background if assigned to HERO_BACKGROUND slot */}
-                      {idx === 0 && heroVideo && (
+                      {idx === 0 && !frameSequenceAsset && heroVideo && (
                         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-40">
                           <video
                             src={heroVideo.fileUrl}
@@ -564,7 +617,7 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                       )}
 
                       {/* Authentic Hero Image Background if assigned to HERO_BACKGROUND slot */}
-                      {idx === 0 && !heroVideo && heroImage && (
+                      {idx === 0 && !frameSequenceAsset && !heroVideo && heroImage && (
                         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-30">
                           <img
                             src={heroImage.fileUrl}
@@ -579,8 +632,13 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                         className={containerClass}
                         style={{ maxWidth: isFullWidth ? "100%" : design.layout.containerWidth }}
                       >
-                        {/* Section Tag */}
-                        <div className="flex items-center gap-2 mb-3">
+                        <ScrollReveal
+                          direction="up"
+                          distance={design.animation.animationIntensity === "energetic" ? 45 : 30}
+                          duration={design.animation.animationIntensity === "cinematic" ? 0.9 : 0.6}
+                        >
+                          {/* Section Tag */}
+                          <div className="flex items-center gap-2 mb-3">
                           <span
                             className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-widest font-bold"
                             style={{
@@ -706,10 +764,29 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                             ))}
                           </div>
                         )}
+                        </ScrollReveal>
                       </div>
                     </section>
                   );
                 })
+              )}
+
+              {/* LEVEL 2: CINEMATIC PINNED STORYTELLING ENGINE */}
+              {design.experienceLevel === "CINEMATIC" && cinematicStorySteps.length > 0 && (
+                <PinnedStorySection
+                  steps={cinematicStorySteps}
+                  title={`${project.name} Signature Story`}
+                  badge={`${categoryPack.title} Narrative`}
+                />
+              )}
+
+              {/* LEVEL 2: CINEMATIC HORIZONTAL GALLERY TRAVEL */}
+              {design.experienceLevel === "CINEMATIC" && cinematicGalleryItems.length > 0 && (
+                <HorizontalScrollGallery
+                  items={cinematicGalleryItems}
+                  title={`${project.name} Visual Showcase`}
+                  badge="Horizontal Flow"
+                />
               )}
             </main>
 

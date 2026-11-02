@@ -18,11 +18,16 @@ import {
   Layers,
   Check,
   ChevronDown,
+  Film,
+  Play,
+  RefreshCw,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { formatBytes, formatDate } from "@/lib/utils";
+import { CanvasFrameSequence } from "@/components/cinematic/CanvasFrameSequence";
 
 interface Asset {
   id: string;
@@ -68,6 +73,22 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
   // Asset deletion modal
   const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Video Extraction Modal state
+  const [videoForJob, setVideoForJob] = useState<Asset | null>(null);
+  const [targetFps, setTargetFps] = useState<number>(24);
+  const [maxFrames, setMaxFrames] = useState<number>(60);
+  const [quality, setQuality] = useState<"low" | "medium" | "high">("high");
+  const [activeJob, setActiveJob] = useState<{
+    id: string;
+    status: string;
+    progress: number;
+    errorMessage?: string;
+  } | null>(null);
+  const [isSubmittingJob, setIsSubmittingJob] = useState(false);
+
+  // Preview Frame Sequence Modal state
+  const [previewSequenceAsset, setPreviewSequenceAsset] = useState<Asset | null>(null);
 
   // Before / After preview slider state
   const [sliderPosition, setSliderPosition] = useState(50);
@@ -148,7 +169,7 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
       }
 
       // Update state: if exclusive slot, clear it from other assets
-      const exclusiveSlots = ["HERO_BACKGROUND", "BEFORE_SLOT", "AFTER_SLOT", "POSTER_FALLBACK"];
+      const exclusiveSlots = ["HERO_BACKGROUND", "BEFORE_SLOT", "AFTER_SLOT", "POSTER_FALLBACK", "CANVAS_HERO_SEQUENCE"];
       setAssets((prev) =>
         prev.map((a) => {
           if (a.id === assetId) {
@@ -162,6 +183,80 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
       );
     } catch (err: any) {
       alert(err.message || "Error updating assignment");
+    }
+  };
+
+  const handleStartExtraction = async () => {
+    if (!videoForJob) return;
+    setIsSubmittingJob(true);
+    setActiveJob({
+      id: "pending",
+      status: "QUEUED",
+      progress: 0,
+    });
+
+    try {
+      const res = await fetch(`/api/projects/${project.id}/video-jobs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoAssetId: videoForJob.id,
+          targetFps,
+          maxFrames,
+          quality,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.jobId) {
+        throw new Error(data.error || "Failed to start extraction job");
+      }
+
+      const jobId = data.jobId;
+      setActiveJob({
+        id: jobId,
+        status: "PROCESSING",
+        progress: 10,
+      });
+
+      // Poll job progress
+      const pollTimer = setInterval(async () => {
+        try {
+          const pollRes = await fetch(`/api/projects/${project.id}/video-jobs/${jobId}`);
+          if (!pollRes.ok) return;
+          const pollData = await pollRes.json();
+          if (!pollData || !pollData.job) return;
+
+          const job = pollData.job;
+          setActiveJob({
+            id: job.jobId,
+            status: job.status,
+            progress: Math.round(job.progress || 0),
+            errorMessage: job.errorMessage,
+          });
+
+          if (job.status === "COMPLETED") {
+            clearInterval(pollTimer);
+            // Refresh assets list
+            const assetsRes = await fetch(`/api/projects/${project.id}/assets`);
+            if (assetsRes.ok) {
+              const fresh = await assetsRes.json();
+              if (fresh.data) setAssets(fresh.data);
+            }
+          } else if (job.status === "FAILED" || job.status === "CANCELLED") {
+            clearInterval(pollTimer);
+          }
+        } catch {}
+      }, 1200);
+    } catch (err: any) {
+      setActiveJob({
+        id: "error",
+        status: "FAILED",
+        progress: 0,
+        errorMessage: err.message || "Failed to start video extraction",
+      });
+    } finally {
+      setIsSubmittingJob(false);
     }
   };
 
@@ -197,6 +292,7 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
       return asset.assetType === "BEFORE_IMAGE" || asset.assetType === "AFTER_IMAGE";
     if (selectedFilter === "POSTER") return asset.assetType === "POSTER";
     if (selectedFilter === "MODEL_3D") return asset.assetType === "MODEL_3D";
+    if (selectedFilter === "FRAME_SEQUENCE") return asset.assetType === "FRAME_SEQUENCE";
     return true;
   });
 
@@ -502,6 +598,11 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
                 count: assets.filter((a) => a.assetType === "POSTER").length,
               },
               {
+                id: "FRAME_SEQUENCE",
+                label: "Frame Sequences",
+                count: assets.filter((a) => a.assetType === "FRAME_SEQUENCE").length,
+              },
+              {
                 id: "MODEL_3D",
                 label: "3D Models",
                 count: assets.filter((a) => a.assetType === "MODEL_3D").length,
@@ -556,6 +657,21 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
                       preload="metadata"
                       className="h-full w-full object-cover"
                     />
+                  ) : asset.assetType === "FRAME_SEQUENCE" ? (
+                    <div className="flex flex-col items-center justify-center text-cyan-400 gap-2 p-4 text-center">
+                      <Film className="h-10 w-10 text-cyan-400 animate-pulse" />
+                      <span className="text-xs font-mono font-bold text-white">Cinematic Frame Manifest</span>
+                      <span className="text-[10px] text-cyan-300 font-mono">
+                        {(() => {
+                          try {
+                            const meta = JSON.parse(asset.metadataJson);
+                            return `${meta.frameCount || "?"} Frames @ ${meta.fps || 24}fps`;
+                          } catch {
+                            return "WebP Ordered Sequence";
+                          }
+                        })()}
+                      </span>
+                    </div>
                   ) : asset.assetType === "MODEL_3D" ? (
                     <div className="flex flex-col items-center justify-center text-indigo-400 gap-2">
                       <FileBox className="h-12 w-12" />
@@ -606,6 +722,39 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
                     </div>
                   </div>
 
+                  {/* Video to Frame Sequence Action */}
+                  {asset.assetType === "VIDEO" && (
+                    <div className="pt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setVideoForJob(asset);
+                          setActiveJob(null);
+                        }}
+                        className="w-full text-xs font-medium text-cyan-300 border-cyan-800/80 bg-cyan-950/40 hover:bg-cyan-900/60 gap-1.5"
+                      >
+                        <Film className="h-3.5 w-3.5" />
+                        <span>Process to Frame Sequence</span>
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Frame Sequence Preview Action */}
+                  {asset.assetType === "FRAME_SEQUENCE" && (
+                    <div className="pt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setPreviewSequenceAsset(asset)}
+                        className="w-full text-xs font-medium text-indigo-300 border-indigo-800/80 bg-indigo-950/40 hover:bg-indigo-900/60 gap-1.5"
+                      >
+                        <Play className="h-3.5 w-3.5" />
+                        <span>Interactive Sequence Preview</span>
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Slot Assignment Selector */}
                   <div className="pt-3 border-t border-slate-800/80 space-y-2">
                     <div className="flex items-center justify-between gap-2">
@@ -617,6 +766,7 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
                       >
                         <option value="">Unassigned</option>
                         <option value="HERO_BACKGROUND">Hero Background</option>
+                        <option value="CANVAS_HERO_SEQUENCE">Canvas Hero Sequence</option>
                         <option value="BEFORE_SLOT">Before Slot</option>
                         <option value="AFTER_SLOT">After Slot</option>
                         <option value="GALLERY">Gallery Item</option>
@@ -698,6 +848,219 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
               <Trash2 className="h-3.5 w-3.5" />
               <span>{isDeleting ? "Deleting..." : "Permanently Delete"}</span>
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Video Extraction Pipeline Modal */}
+      <Modal
+        isOpen={!!videoForJob}
+        onClose={() => {
+          if (!activeJob || activeJob.status === "COMPLETED" || activeJob.status === "FAILED") {
+            setVideoForJob(null);
+            setActiveJob(null);
+          }
+        }}
+        title="Cinematic Frame Sequence Extraction"
+        description="Extract ordered WebP frames from this video using FFmpeg and Sharp for high-performance canvas scrub playback."
+        maxWidth="lg"
+      >
+        <div className="space-y-5">
+          {videoForJob && (
+            <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-semibold text-white block">{videoForJob.name}</span>
+                <span className="text-[11px] font-mono text-slate-400">
+                  {videoForJob.fileName} • {formatBytes(videoForJob.fileSize)}
+                </span>
+              </div>
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+                Source Video
+              </span>
+            </div>
+          )}
+
+          {/* Configuration controls (disabled if job running) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                Target Extraction FPS
+              </label>
+              <select
+                disabled={Boolean(activeJob && (activeJob.status === "PROCESSING" || activeJob.status === "QUEUED"))}
+                value={targetFps}
+                onChange={(e) => setTargetFps(Number(e.target.value))}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              >
+                <option value={12}>12 fps (Stylized / Lightweight)</option>
+                <option value={24}>24 fps (Cinematic Standard)</option>
+                <option value={30}>30 fps (Ultra Smooth)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                Maximum Frames
+              </label>
+              <select
+                disabled={Boolean(activeJob && (activeJob.status === "PROCESSING" || activeJob.status === "QUEUED"))}
+                value={maxFrames}
+                onChange={(e) => setMaxFrames(Number(e.target.value))}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              >
+                <option value={30}>30 Frames (Quick Scrub)</option>
+                <option value={60}>60 Frames (Balanced 2.5s)</option>
+                <option value={120}>120 Frames (Extended 5s)</option>
+                <option value={240}>240 Frames (High-Precision 10s)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                WebP Compression Quality
+              </label>
+              <select
+                disabled={Boolean(activeJob && (activeJob.status === "PROCESSING" || activeJob.status === "QUEUED"))}
+                value={quality}
+                onChange={(e) => setQuality(e.target.value as any)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              >
+                <option value="high">High (85% Quality)</option>
+                <option value="medium">Medium (75% Quality)</option>
+                <option value="low">Low (60% Efficient)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Job Progress & Feedback */}
+          {activeJob && (
+            <div className="space-y-2 p-4 rounded-xl bg-slate-900/90 border border-slate-800">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-200 flex items-center gap-2">
+                  {activeJob.status === "PROCESSING" && (
+                    <RefreshCw className="h-3.5 w-3.5 text-cyan-400 animate-spin" />
+                  )}
+                  {activeJob.status === "COMPLETED" && (
+                    <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
+                  )}
+                  {activeJob.status === "FAILED" && (
+                    <AlertCircle className="h-3.5 w-3.5 text-rose-400" />
+                  )}
+                  <span>Status: {activeJob.status}</span>
+                </span>
+                <span className="font-mono text-cyan-400 font-bold">{activeJob.progress}%</span>
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    activeJob.status === "FAILED"
+                      ? "bg-rose-500"
+                      : activeJob.status === "COMPLETED"
+                      ? "bg-emerald-500"
+                      : "bg-gradient-to-r from-cyan-500 to-indigo-500"
+                  }`}
+                  style={{ width: `${Math.max(activeJob.progress, 5)}%` }}
+                />
+              </div>
+
+              {activeJob.errorMessage && (
+                <p className="text-xs text-rose-400 pt-1">{activeJob.errorMessage}</p>
+              )}
+
+              {activeJob.status === "COMPLETED" && (
+                <div className="pt-2 text-xs text-emerald-300 flex items-center justify-between">
+                  <span>Frame manifest successfully compiled and added to Project Assets!</span>
+                  <button
+                    onClick={() => {
+                      setVideoForJob(null);
+                      setSelectedFilter("FRAME_SEQUENCE");
+                    }}
+                    className="underline text-cyan-300 font-semibold cursor-pointer"
+                  >
+                    View in Sequences
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={Boolean(activeJob && activeJob.status === "PROCESSING")}
+              onClick={() => {
+                setVideoForJob(null);
+                setActiveJob(null);
+              }}
+            >
+              {activeJob?.status === "COMPLETED" ? "Close" : "Cancel"}
+            </Button>
+            {(!activeJob || activeJob.status === "FAILED") && (
+              <Button
+                size="sm"
+                disabled={isSubmittingJob}
+                onClick={handleStartExtraction}
+                className="gap-2 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white"
+              >
+                <Film className="h-4 w-4" />
+                <span>{isSubmittingJob ? "Starting..." : "Start Frame Extraction"}</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Interactive Frame Sequence Preview Modal */}
+      <Modal
+        isOpen={!!previewSequenceAsset}
+        onClose={() => setPreviewSequenceAsset(null)}
+        title="Interactive Frame Sequence Preview"
+        description="Verify HTML5 Canvas frame rendering and scroll scrub behavior for this extracted sequence."
+        maxWidth="lg"
+      >
+        <div className="space-y-4">
+          {previewSequenceAsset && (
+            <div>
+              <div className="h-80 md:h-96 w-full rounded-2xl overflow-hidden border border-slate-800 shadow-2xl relative bg-black">
+                <CanvasFrameSequence
+                  manifestUrl={previewSequenceAsset.fileUrl}
+                  fitMode="cover"
+                  pinned={false}
+                  className="w-full h-full"
+                />
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-slate-400 font-mono">
+                <span>Manifest: {previewSequenceAsset.fileName}</span>
+                <span className="text-cyan-400 font-bold">HTML5 Canvas • Scroll Driven</span>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPreviewSequenceAsset(null)}
+            >
+              Close Preview
+            </Button>
+            {previewSequenceAsset && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  handleSlotAssignment(previewSequenceAsset.id, "CANVAS_HERO_SEQUENCE");
+                  setPreviewSequenceAsset(null);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white gap-1.5"
+              >
+                <Check className="h-3.5 w-3.5" />
+                <span>Assign to Hero Canvas</span>
+              </Button>
+            )}
           </div>
         </div>
       </Modal>

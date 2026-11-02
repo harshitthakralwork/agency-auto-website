@@ -870,6 +870,38 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                 <p className="text-[11px] text-slate-400">Interactive hover speeds, scaling, and transitions.</p>
               </div>
             </div>
+
+            {/* Phase 2.3 Cinematic Engine Activation */}
+            <div className="p-4 rounded-xl border border-indigo-900/60 bg-gradient-to-r from-indigo-950/40 via-slate-900 to-cyan-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Cinematic Scroll & Canvas Frame Engine
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
+                    Phase 2.3 Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300">
+                  Enables GSAP ScrollTrigger reveals, pinned storytelling timelines, and HTML5 Canvas frame scrubbing in the Live Preview.
+                </p>
+              </div>
+
+              <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-white shrink-0 bg-slate-900 px-4 py-2 rounded-lg border border-slate-700">
+                <input
+                  type="checkbox"
+                  checked={designState.animation.enableCanvasFx}
+                  onChange={(e) =>
+                    setDesignState((prev) => ({
+                      ...prev,
+                      animation: { ...prev.animation, enableCanvasFx: e.target.checked },
+                    }))
+                  }
+                  className="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                />
+                <span>Enable Cinematic FX</span>
+              </label>
+            </div>
           </CardContent>
         </Card>
       )}
