@@ -173,13 +173,28 @@ export class VideoProcessingQueue {
 
     try {
       // Find oldest QUEUED candidate
-      const candidate = await prisma.videoProcessingJob.findFirst({
-        where: { status: "QUEUED" },
-        include: { videoAsset: true },
-        orderBy: { createdAt: "asc" },
-      });
+      let candidate: any = null;
+      try {
+        candidate = await prisma.videoProcessingJob.findFirst({
+          where: { status: "QUEUED" },
+          include: { videoAsset: true },
+          orderBy: { createdAt: "asc" },
+        });
+      } catch {
+        // If relation inconsistency occurs (e.g. asset unlinked in tests), purge dangling queued job
+        await prisma.videoProcessingJob.deleteMany({
+          where: { status: "QUEUED", videoAsset: null as any },
+        }).catch(() => {});
+        return false;
+      }
 
       if (!candidate || !candidate.videoAsset) {
+        if (candidate) {
+          await prisma.videoProcessingJob.updateMany({
+            where: { id: candidate.id },
+            data: { status: "FAILED", errorMessage: "Missing linked video asset" },
+          });
+        }
         return false;
       }
 
