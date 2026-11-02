@@ -22,6 +22,9 @@ export * from "./materials/engine";
 // Scene Engine
 export * from "./scene";
 
+// Animation & Timeline Engine
+export * from "./animation";
+
 // Performance
 export * from "./performance/capabilities";
 

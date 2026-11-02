@@ -444,6 +444,10 @@ export class ThreeDSceneEngine {
     return this.objectManager;
   }
 
+  getLightingEngine(): ThreeDLightingEngine {
+    return this.lightingEngine;
+  }
+
   /**
    * Complete recursive teardown and disposal of all resources.
    */

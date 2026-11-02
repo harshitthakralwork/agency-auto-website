@@ -22,6 +22,7 @@ import {
   Box,
   Layout,
   Video,
+  Film,
   Image as ImageIcon,
   Upload,
 } from "lucide-react";
@@ -246,6 +247,13 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
             <Button variant="secondary" size="sm" className="gap-1.5 text-indigo-300 border border-indigo-800/60 bg-indigo-950/40 hover:bg-indigo-900/60">
               <Box className="h-3.5 w-3.5" />
               <span>3D Scene Studio</span>
+            </Button>
+          </Link>
+
+          <Link href={`/projects/${project.id}/animation-3d`}>
+            <Button variant="secondary" size="sm" className="gap-1.5 text-purple-300 border border-purple-800/60 bg-purple-950/40 hover:bg-purple-900/60">
+              <Film className="h-3.5 w-3.5" />
+              <span>3D Animation</span>
             </Button>
           </Link>
 

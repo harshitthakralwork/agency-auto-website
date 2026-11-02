@@ -25,6 +25,7 @@ import {
   HelpCircle,
   Sliders,
   Grid,
+  Film,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -540,6 +541,13 @@ export function SceneStudioView({
             <Save className="h-3.5 w-3.5" />
             <span>{isSaving ? "Saving..." : "Save 3D Scene"}</span>
           </Button>
+
+          <Link href={`/projects/${project.id}/animation-3d`}>
+            <Button size="sm" variant="outline" className="gap-1.5 text-purple-300 border-purple-800/80 bg-purple-950/40 hover:bg-purple-900/60">
+              <Film className="h-3.5 w-3.5" />
+              <span>3D Animation</span>
+            </Button>
+          </Link>
 
           <Link href={`/projects/${project.id}/preview`} target="_blank">
             <Button size="sm" variant="outline" className="gap-1.5 text-cyan-400 border-cyan-800/80">
