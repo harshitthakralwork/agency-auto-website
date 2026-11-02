@@ -205,6 +205,16 @@ export function DesignStudioView({ project }: DesignStudioProps) {
     });
   };
 
+  // Section title customization handler
+  const handleSectionTitleChange = (sectionId: string, customTitle: string) => {
+    setDesignState((prev) => ({
+      ...prev,
+      sections: prev.sections.map((sec) =>
+        sec.id === sectionId ? { ...sec, customTitle } : sec
+      ),
+    }));
+  };
+
   // Save changes to database
   const handleSave = async () => {
     setIsSaving(true);
@@ -423,12 +433,17 @@ export function DesignStudioView({ project }: DesignStudioProps) {
           {/* 3D Parameters (Active for Level 3 or configurable) */}
           <Card className="border-slate-800 bg-slate-950/60">
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Box className="h-4 w-4 text-violet-400" />
-                <span>3D Experience Configuration</span>
-              </CardTitle>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Box className="h-4 w-4 text-violet-400" />
+                  <span>3D Experience Configuration</span>
+                </CardTitle>
+                <span className="text-[10px] font-mono bg-violet-950/80 text-violet-300 border border-violet-800 px-2 py-0.5 rounded">
+                  PHASE 3 WEBGL SCENE HOOK — CONFIGURATION PREVIEW
+                </span>
+              </div>
               <CardDescription>
-                Configure WebGL model hooks, scroll interactions, and lighting scenes.
+                Configure WebGL model hooks, scroll interactions, and lighting scenes. Settings are stored persistently in SQLite and will power real Three.js / React Three Fiber models in Phase 3.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -453,9 +468,11 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                    Scroll Interaction Mode
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                      Scroll Interaction Mode
+                    </label>
+                  </div>
                   <select
                     value={designState.threeD.scrollInteraction}
                     onChange={(e) =>
@@ -464,10 +481,11 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                     className="w-full h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                   >
                     <option value="none">None (Static / Hover only)</option>
-                    <option value="rotate_on_scroll">Rotate Object on Page Scroll</option>
-                    <option value="camera_zoom_pan">Camera Orbit & Dolly Zoom</option>
-                    <option value="exploded_view">Exploded View Disassembly</option>
+                    <option value="rotate_on_scroll">Rotate Object on Page Scroll (Phase 2.3 GSAP)</option>
+                    <option value="camera_zoom_pan">Camera Orbit & Dolly Zoom (Phase 2.3 GSAP)</option>
+                    <option value="exploded_view">Exploded View Disassembly (Phase 2.3 GSAP)</option>
                   </select>
+                  <p className="text-[10px] text-slate-500 font-mono">Camera scroll curves connect to GSAP in Phase 2.3.</p>
                 </div>
 
                 <div className="space-y-2">
@@ -694,7 +712,7 @@ export function DesignStudioView({ project }: DesignStudioProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                   Heading Font Family
@@ -730,6 +748,23 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                 </select>
                 <p className="text-[11px] text-slate-400">Used for paragraphs, feature descriptions, and navigational menus.</p>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  Base Font Scale
+                </label>
+                <select
+                  value={designState.typography.baseFontSize}
+                  onChange={(e) => handleTypographyChange("baseFontSize", e.target.value)}
+                  className="w-full h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="14px">14px — Compact / Technical</option>
+                  <option value="16px">16px — Standard Web Default</option>
+                  <option value="18px">18px — Editorial Large</option>
+                  <option value="20px">20px — Cinematic High-Impact</option>
+                </select>
+                <p className="text-[11px] text-slate-400">Root typography scale that drives proportional responsive rem scales.</p>
+              </div>
             </div>
 
             <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
@@ -764,7 +799,7 @@ export function DesignStudioView({ project }: DesignStudioProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                   Layout Structure
@@ -778,6 +813,7 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                   <option value="full-width">Full-Width Edge-to-Edge</option>
                   <option value="asymmetric">Asymmetric Agency Grid</option>
                 </select>
+                <p className="text-[11px] text-slate-400">Section alignment and grid container layout.</p>
               </div>
 
               <div className="space-y-2">
@@ -795,11 +831,29 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                   <option value="0.75rem">Modern Curved (12px)</option>
                   <option value="1rem">Pill / Soft Curved (16px)</option>
                 </select>
+                <p className="text-[11px] text-slate-400">Corner curvature on buttons, cards, and media.</p>
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                  Animation Intent
+                  Container Width
+                </label>
+                <select
+                  value={designState.layout.containerWidth}
+                  onChange={(e) => handleLayoutChange("containerWidth", e.target.value)}
+                  className="w-full h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="1140px">1140px — Compact Grid</option>
+                  <option value="1280px">1280px — Standard Contained</option>
+                  <option value="1440px">1440px — Expanded Wide</option>
+                  <option value="1600px">1600px — Cinematic Canvas</option>
+                </select>
+                <p className="text-[11px] text-slate-400">Maximum bounding width for page content.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  Animation Dynamics
                 </label>
                 <select
                   value={designState.animation.animationIntensity}
@@ -808,11 +862,12 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                   }
                   className="w-full h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                 >
-                  <option value="none">None (Static / Instant)</option>
-                  <option value="subtle">Subtle (Smooth fades)</option>
-                  <option value="cinematic">Cinematic (Staggered reveals)</option>
-                  <option value="energetic">Energetic (Dynamic springs)</option>
+                  <option value="none">None (Instant / 0ms)</option>
+                  <option value="subtle">Subtle (200ms Smooth)</option>
+                  <option value="cinematic">Cinematic (500ms Ease)</option>
+                  <option value="energetic">Energetic (150ms Snappy)</option>
                 </select>
+                <p className="text-[11px] text-slate-400">Interactive hover speeds, scaling, and transitions.</p>
               </div>
             </div>
           </CardContent>
@@ -868,6 +923,16 @@ export function DesignStudioView({ project }: DesignStudioProps) {
                         {section.description}
                       </p>
                     )}
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-slate-500">Custom Title:</span>
+                      <input
+                        type="text"
+                        placeholder={section.name}
+                        value={section.customTitle || ""}
+                        onChange={(e) => handleSectionTitleChange(section.id, e.target.value)}
+                        className="h-7 rounded bg-slate-950 border border-slate-700 px-2 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500 w-52"
+                      />
+                    </div>
                   </div>
                 </div>
 

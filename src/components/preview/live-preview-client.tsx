@@ -220,6 +220,7 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
               backgroundColor: "var(--theme-bg)",
               color: "var(--theme-text)",
               fontFamily: "var(--theme-body-font)",
+              fontSize: "var(--theme-base-font-size)",
             }}
           >
             {/* Top Navigation Bar of the Client Website */}
@@ -290,7 +291,7 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                   <div className="space-y-4 max-w-xl">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-bold bg-violet-950/80 text-violet-300 border border-violet-800">
                       <Box className="h-3.5 w-3.5 text-violet-400" />
-                      <span>LEVEL 3 INTERACTIVE 3D WEBGL ENGINE HOOK</span>
+                      <span>LEVEL 3 SPATIAL 3D ENGINE HOOK [PHASE 3 ARCHITECTURE]</span>
                     </div>
 
                     <h2
@@ -301,7 +302,7 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                     </h2>
 
                     <p className="text-sm md:text-base leading-relaxed" style={{ color: "var(--theme-muted)" }}>
-                      Drag or swipe to rotate the 3D model. In Phase 2, this slot connects to full Three.js / React Three Fiber models with scroll-triggered camera orbits.
+                      Interactive geometric viewport mockup. Registers 3D archetype ({design.threeD.objectType.replace(/_/g, " ")}) and lighting ({activeLighting}). Actual Three.js / React Three Fiber asset rendering and GSAP scroll camera orbits are scheduled for Phase 3.
                     </p>
 
                     <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -522,14 +523,28 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                   const actionLabel = matchingRec?.previewSnippet?.actionLabel;
 
                   const isEven = idx % 2 === 0;
+                  const isFullWidth = design.layout.layoutStyle === "full-width";
+                  const isAsymmetric = design.layout.layoutStyle === "asymmetric";
+
+                  const containerClass = isFullWidth
+                    ? "w-full relative z-10"
+                    : isAsymmetric
+                    ? isEven
+                      ? "max-w-[var(--theme-container)] mr-auto ml-0 md:ml-12 lg:ml-20 relative z-10"
+                      : "max-w-[var(--theme-container)] ml-auto mr-0 md:mr-12 lg:mr-20 relative z-10"
+                    : "mx-auto relative z-10";
 
                   return (
                     <section
                       key={section.id}
-                      className="py-16 md:py-24 px-6 md:px-12 border-b relative overflow-hidden"
+                      className="border-b relative overflow-hidden transition-colors"
                       style={{
                         backgroundColor: isEven ? "var(--theme-bg)" : "var(--theme-surface)",
                         borderColor: "rgba(148, 163, 184, 0.12)",
+                        paddingTop: "var(--theme-section-padding-y)",
+                        paddingBottom: "var(--theme-section-padding-y)",
+                        paddingLeft: "var(--theme-section-padding-x)",
+                        paddingRight: "var(--theme-section-padding-x)",
                       }}
                     >
                       {/* Authentic Hero Video Background if assigned to HERO_BACKGROUND slot */}
@@ -561,8 +576,8 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                       )}
 
                       <div
-                        className="mx-auto relative z-10"
-                        style={{ maxWidth: design.layout.containerWidth }}
+                        className={containerClass}
+                        style={{ maxWidth: isFullWidth ? "100%" : design.layout.containerWidth }}
                       >
                         {/* Section Tag */}
                         <div className="flex items-center gap-2 mb-3">
@@ -600,10 +615,18 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                         {actionLabel && (
                           <div className="mt-8 flex flex-wrap gap-4">
                             <button
-                              className="px-6 py-3 text-sm font-bold text-white shadow-lg transition-transform hover:scale-105 flex items-center gap-2"
+                              className="px-6 py-3 text-sm font-bold text-white shadow-lg flex items-center gap-2 cursor-pointer transition-all"
                               style={{
                                 backgroundColor: "var(--theme-primary)",
                                 borderRadius: "var(--theme-radius)",
+                                transitionDuration: "var(--theme-transition-duration)",
+                                transitionTimingFunction: "var(--theme-animation-timing)",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = `var(--theme-hover-scale) var(--theme-hover-y)`;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = "scale(1) translateY(0)";
                               }}
                             >
                               <span>{actionLabel}</span>
@@ -611,11 +634,19 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                             </button>
 
                             <button
-                              className="px-6 py-3 text-sm font-semibold border transition-opacity hover:opacity-80"
+                              className="px-6 py-3 text-sm font-semibold border transition-all cursor-pointer"
                               style={{
                                 borderColor: "var(--theme-muted)",
                                 color: "var(--theme-text)",
                                 borderRadius: "var(--theme-radius)",
+                                transitionDuration: "var(--theme-transition-duration)",
+                                transitionTimingFunction: "var(--theme-animation-timing)",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = `var(--theme-hover-scale) var(--theme-hover-y)`;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = "scale(1) translateY(0)";
                               }}
                             >
                               Learn More
@@ -629,11 +660,25 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                             {project.services.split(",").map((service, sIdx) => (
                               <div
                                 key={sIdx}
-                                className="p-6 border transition-all"
+                                className={`p-6 border transition-all ${
+                                  isAsymmetric && sIdx % 2 !== 0 ? "md:translate-y-6" : ""
+                                }`}
                                 style={{
                                   backgroundColor: "var(--theme-surface)",
                                   borderColor: "rgba(148, 163, 184, 0.2)",
                                   borderRadius: "var(--theme-radius)",
+                                  transitionDuration: "var(--theme-transition-duration)",
+                                  transitionTimingFunction: "var(--theme-animation-timing)",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = isAsymmetric && sIdx % 2 !== 0
+                                    ? `var(--theme-hover-scale) translateY(1.2rem)`
+                                    : `var(--theme-hover-scale) var(--theme-hover-y)`;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = isAsymmetric && sIdx % 2 !== 0
+                                    ? "scale(1) translateY(1.5rem)"
+                                    : "scale(1) translateY(0)";
                                 }}
                               >
                                 <div

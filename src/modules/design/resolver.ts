@@ -7,7 +7,7 @@ import {
   ThreeDPreferences,
   MediaPreferences,
 } from "./types";
-import { getDefaultSectionsForCategory } from "../categories/registry";
+import { getDefaultSectionsForCategory, getCategoryPack } from "../categories/registry";
 
 export function resolveDesignState(
   categoryId: string,
@@ -35,9 +35,10 @@ export function resolveDesignState(
     responsiveSettings?: string | null;
   } | null
 ): ProjectDesignState {
+  const pack = getCategoryPack(categoryId);
   const experienceLevel =
     (rawConfig?.experienceLevel as ExperienceLevel) || "CINEMATIC";
-  const presetKey = (rawConfig?.preset as DesignPresetId) || "cinematic";
+  const presetKey = (rawConfig?.preset as DesignPresetId) || pack.suggestedPreset || "cinematic";
   const basePreset =
     presetKey in DESIGN_PRESETS
       ? DESIGN_PRESETS[presetKey as Exclude<DesignPresetId, "custom">]
@@ -138,6 +139,54 @@ export function resolveDesignState(
 }
 
 export function generateCssVariables(design: ProjectDesignState): React.CSSProperties {
+  // Animation dynamics mapping
+  const animationMap = {
+    none: {
+      duration: "0ms",
+      timing: "linear",
+      hoverScale: "scale(1)",
+      hoverY: "translateY(0)",
+    },
+    subtle: {
+      duration: "200ms",
+      timing: "cubic-bezier(0.4, 0, 0.2, 1)",
+      hoverScale: "scale(1.02)",
+      hoverY: "translateY(-2px)",
+    },
+    cinematic: {
+      duration: "500ms",
+      timing: "cubic-bezier(0.16, 1, 0.3, 1)",
+      hoverScale: "scale(1.04)",
+      hoverY: "translateY(-4px)",
+    },
+    energetic: {
+      duration: "150ms",
+      timing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      hoverScale: "scale(1.06)",
+      hoverY: "translateY(-6px)",
+    },
+  };
+
+  const anim = animationMap[design.animation.animationIntensity] || animationMap.cinematic;
+
+  // Layout spacing mapping
+  const layoutSpacingMap = {
+    "modern-contained": {
+      paddingY: "4.5rem",
+      paddingX: "2rem",
+    },
+    "full-width": {
+      paddingY: "5.5rem",
+      paddingX: "3.5rem",
+    },
+    asymmetric: {
+      paddingY: "6rem",
+      paddingX: "4rem",
+    },
+  };
+
+  const spacing = layoutSpacingMap[design.layout.layoutStyle] || layoutSpacingMap["modern-contained"];
+
   return {
     ["--theme-primary" as string]: design.colors.primary,
     ["--theme-secondary" as string]: design.colors.secondary,
@@ -148,7 +197,15 @@ export function generateCssVariables(design: ProjectDesignState): React.CSSPrope
     ["--theme-muted" as string]: design.colors.mutedText,
     ["--theme-heading-font" as string]: `"${design.typography.headingFont}", sans-serif`,
     ["--theme-body-font" as string]: `"${design.typography.bodyFont}", sans-serif`,
+    ["--theme-base-font-size" as string]: design.typography.baseFontSize || "16px",
     ["--theme-radius" as string]: design.layout.borderRadius,
     ["--theme-container" as string]: design.layout.containerWidth,
+    ["--theme-layout-style" as string]: design.layout.layoutStyle,
+    ["--theme-section-padding-y" as string]: spacing.paddingY,
+    ["--theme-section-padding-x" as string]: spacing.paddingX,
+    ["--theme-transition-duration" as string]: anim.duration,
+    ["--theme-animation-timing" as string]: anim.timing,
+    ["--theme-hover-scale" as string]: anim.hoverScale,
+    ["--theme-hover-y" as string]: anim.hoverY,
   } as React.CSSProperties;
 }
