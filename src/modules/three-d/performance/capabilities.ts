@@ -104,3 +104,4 @@ export class ThreeDCapabilityDetector {
     this.cachedResult = null;
   }
 }
+

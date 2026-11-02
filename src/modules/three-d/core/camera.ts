@@ -38,3 +38,4 @@ export class ThreeDCamera {
     camera.updateProjectionMatrix();
   }
 }
+

@@ -73,3 +73,4 @@ export class ThreeDRenderer {
     renderer.setSize(width, height, false);
   }
 }
+
