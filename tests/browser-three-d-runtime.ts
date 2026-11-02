@@ -78,6 +78,11 @@ async function runBrowser3DRuntimeTests() {
     // 2. Production 3D Runtime Root & Canvas Mounting
     console.log("\n--- 2. Testing Production 3D Canvas Mounting ---");
     await page.waitForSelector("[data-3d-production-root]", { timeout: 15000 });
+    const rootHtml = await page.evaluate(() => document.querySelector("[data-3d-production-root]")?.innerHTML || "");
+    console.log("[DEBUG ROOT HTML]:", rootHtml.slice(0, 300));
+    console.log("[DEBUG CONSOLE ERRORS]:", consoleErrors);
+    console.log("[DEBUG UNCAUGHT EXCEPTIONS]:", uncaughtExceptions);
+
     await page.waitForSelector("[data-3d-production-root] canvas", { timeout: 15000 });
     const canvasValid = await page.evaluate(() => {
       const c = document.querySelector("[data-3d-production-root] canvas") as HTMLCanvasElement;

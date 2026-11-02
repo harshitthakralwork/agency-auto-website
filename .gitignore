@@ -40,8 +40,10 @@ yarn-error.log*
 *.db
 *.db-journal
 
-# uploads
+# uploads & storage
 /public/uploads/
+/storage/
+/dist/
 
 # typescript
 *.tsbuildinfo

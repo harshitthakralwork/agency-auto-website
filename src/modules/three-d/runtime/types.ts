@@ -32,3 +32,4 @@ export interface RuntimeMetrics {
   memoryGeometries: number;
   memoryTextures: number;
 }
+

@@ -71,7 +71,10 @@ export class Production3DRuntime {
         interactiveControls: Boolean(this.options.interactiveControls),
       });
 
-      if (this.isDisposed || !this.sceneEngine) return false;
+      // StrictMode / cancellation guard: if disposed while async initialization was running, halt immediately
+      if (this.isDisposed || !this.sceneEngine) {
+        return false;
+      }
 
       // 4. Attach WebGL Context Loss / Restore guards
       const renderer = this.sceneEngine.getRenderer();
@@ -160,13 +163,12 @@ export class Production3DRuntime {
       });
 
       this.isLoaded = true;
-      if (this.options.onLoaded && !this.isDisposed) {
+      if (this.options.onLoaded) {
         this.options.onLoaded();
       }
 
       return true;
     } catch (err: any) {
-      if (this.isDisposed) return false;
       console.error("[Production3DRuntime] Initialization error:", err);
       if (this.options.onError) this.options.onError(err);
       this.renderFallback(err.message || "Failed to initialize 3D scene");
@@ -178,15 +180,13 @@ export class Production3DRuntime {
    * Loads all model assets, safely catching failed model URLs and substituting a procedural archetype.
    */
   private async loadSceneModels(objects: any[]): Promise<void> {
-    if (this.isDisposed || !this.sceneEngine || !Array.isArray(objects)) return;
+    if (!this.sceneEngine || !Array.isArray(objects)) return;
 
     for (const objConfig of objects) {
-      if (this.isDisposed || !this.sceneEngine) return;
       if (objConfig.sourceType === "asset" && objConfig.assetUrl) {
         try {
           await this.sceneEngine.addObject(objConfig);
         } catch (loadErr) {
-          if (this.isDisposed || !this.sceneEngine) return;
           console.warn(
             `[Production3DRuntime] Model failed to load (${objConfig.assetUrl}). Substituting procedural archetype.`,
             loadErr
@@ -209,7 +209,7 @@ export class Production3DRuntime {
    * Renders non-intrusive fallback placeholder if WebGL completely fails.
    */
   private renderFallback(message: string): void {
-    if (this.isDisposed || !this.container) return;
+    if (!this.container) return;
 
     // Check if poster fallback exists
     if (this.manifest.posterUrl) {

@@ -778,16 +778,11 @@ class Standalone3DRuntime {
   }
 }
 
-// Bootstrap on DOM load or immediately if already ready
-if (document.readyState === "loading") {
-  window.addEventListener("DOMContentLoaded", () => {
-    const runtime = new Standalone3DRuntime("scene-3d-canvas-host", "scene-3d-progress-bar");
-    runtime.init();
-  });
-} else {
+// Bootstrap on DOM load
+window.addEventListener("DOMContentLoaded", () => {
   const runtime = new Standalone3DRuntime("scene-3d-canvas-host", "scene-3d-progress-bar");
   runtime.init();
-}
+});
 `;
   }
 
@@ -894,10 +889,10 @@ if (document.readyState === "loading") {
       </div>
 
       <div class="features-grid">
-        ${(categoryPack.keyFeatures || []).slice(0, 3).map((f: string) => `
+        ${(categoryPack.recommendedSections || []).slice(0, 3).map((f: any) => `
         <div class="feature-card">
-          <h3 class="feature-title">${f}</h3>
-          <p class="feature-desc">Engineered specifically for ${categoryPack.title} standards and client expectations.</p>
+          <h3 class="feature-title">${f.name}</h3>
+          <p class="feature-desc">${f.description}</p>
         </div>`).join("")}
       </div>
     </div>
@@ -918,3 +913,4 @@ if (document.readyState === "loading") {
 `;
   }
 }
+

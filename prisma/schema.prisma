@@ -24,6 +24,7 @@ model Project {
   designConfig    ProjectDesignConfig?
   assets          ProjectAsset[]
   videoJobs       VideoProcessingJob[]
+  researchSessions ResearchSession[]
 
   @@index([category])
   @@index([experienceLevel])
@@ -138,4 +139,59 @@ model VideoProcessingJob {
   @@index([videoAssetId])
   @@index([status])
 }
+
+model ResearchSession {
+  id                    String    @id @default(cuid())
+  projectId             String?
+  project               Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  // Target Information
+  targetUrl             String
+  targetDomain          String
+  canonicalUrl          String?
+  title                 String?
+  industry              String?   // Matches CategoryPack (e.g. HEALTHCARE, HOTELS_BANQUETS, etc.)
+
+  // Lifecycle State
+  status                String    @default("QUEUED") // QUEUED, ANALYZING, COMPLETED, FAILED, TIMED_OUT, CANCELLED
+  errorCode             String?   // INVALID_URL, SSRF_BLOCKED, PROCESS_TIMEOUT, MALFORMED_OUTPUT, HASH_MISMATCH, OVERSIZED_EVIDENCE, RUNTIME_CRASH
+  errorMessage          String?
+  retryCount            Int       @default(0)
+  heartbeatAt           DateTime?
+
+  // Timestamps
+  queuedAt              DateTime  @default(now())
+  startedAt             DateTime?
+  completedAt           DateTime?
+
+  // Verification & Evidence File Reference (outside public directory)
+  evidenceId            String?
+  evidenceSha256        String?
+  evidenceStoragePath   String?
+  evidenceFileSizeBytes Int?
+
+  // Execution Metrics
+  durationMs            Int?
+  capturedDomBytes      Int?
+  capturedA11yBytes     Int?
+  networkTransactionCount Int?
+
+  // Observed Facts (Only facts directly grounded in evidence with zero speculation)
+  observedFactsJson     String    @default("{}")
+
+  // Heuristic Detections (Explicitly marked as heuristic/inferred with confidence score and evidence citation)
+  heuristicDetectionsJson String  @default("{}")
+
+  // Explicit Evidence Limitations (preserved from REA envelope)
+  limitationsJson       String    @default("[]")
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([targetDomain])
+  @@index([status])
+  @@index([projectId])
+  @@index([createdAt])
+}
+
 
