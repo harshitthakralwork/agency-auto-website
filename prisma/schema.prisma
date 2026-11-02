@@ -22,6 +22,7 @@ model Project {
   updatedAt       DateTime             @updatedAt
 
   designConfig    ProjectDesignConfig?
+  assets          ProjectAsset[]
 
   @@index([category])
   @@index([experienceLevel])
@@ -76,4 +77,29 @@ model ProjectDesignConfig {
 
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+}
+
+model ProjectAsset {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name            String
+  fileName        String
+  fileUrl         String
+  filePath        String
+  mimeType        String
+  fileSize        Int
+  width           Int?
+  height          Int?
+  assetType       String   @default("IMAGE") // IMAGE, VIDEO, POSTER, BEFORE_IMAGE, AFTER_IMAGE, MODEL_3D
+  assignedSlot    String?  // HERO_BACKGROUND, BEFORE_SLOT, AFTER_SLOT, GALLERY, SECTION_BG, POSTER_FALLBACK
+  metadataJson    String   @default("{}")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([assetType])
+  @@index([assignedSlot])
 }

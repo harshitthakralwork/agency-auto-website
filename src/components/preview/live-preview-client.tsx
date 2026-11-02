@@ -21,6 +21,8 @@ import {
   Maximize2,
   Sliders,
   MoveHorizontal,
+  Video,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { resolveDesignState, generateCssVariables } from "@/modules/design/resolver";
@@ -62,6 +64,15 @@ interface LivePreviewProps {
       sectionsConfigJson: string;
       responsiveSettings: string;
     } | null;
+    assets?: Array<{
+      id: string;
+      name: string;
+      fileName: string;
+      fileUrl: string;
+      assetType: string;
+      assignedSlot: string | null;
+      mimeType: string;
+    }>;
   };
 }
 
@@ -97,6 +108,17 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
   const activeSections = design.sections
     .filter((s) => s.enabled)
     .sort((a, b) => a.order - b.order);
+
+  // Media asset assignments
+  const beforeAsset = project.assets?.find((a) => a.assignedSlot === "BEFORE_SLOT");
+  const afterAsset = project.assets?.find((a) => a.assignedSlot === "AFTER_SLOT");
+  const heroVideo = project.assets?.find(
+    (a) => a.assignedSlot === "HERO_BACKGROUND" && a.assetType === "VIDEO"
+  );
+  const heroImage = project.assets?.find(
+    (a) => a.assignedSlot === "HERO_BACKGROUND" && a.assetType === "IMAGE"
+  );
+  const heroPoster = project.assets?.find((a) => a.assignedSlot === "POSTER_FALLBACK");
 
   // Viewport container width constraints
   const viewportWidths = {
@@ -169,10 +191,19 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
           </button>
         </div>
 
-        {/* Right: Disclaimer Badge */}
-        <div className="flex items-center gap-2 text-[11px] text-amber-300 bg-amber-950/60 border border-amber-800/80 px-2.5 py-1 rounded-lg">
-          <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-          <span className="font-mono">AGENCY PREVIEW — NON-PRODUCTION</span>
+        {/* Right: Actions & Disclaimer */}
+        <div className="flex items-center gap-2.5">
+          <Link
+            href={`/projects/${project.id}/media`}
+            className="flex items-center gap-1.5 text-xs text-cyan-300 hover:text-white transition-colors font-medium border border-cyan-800/80 bg-cyan-950/60 px-2.5 py-1 rounded-lg"
+          >
+            <ImageIcon className="h-3.5 w-3.5 text-cyan-400" />
+            <span>Media Studio</span>
+          </Link>
+          <div className="flex items-center gap-1.5 text-[11px] text-amber-300 bg-amber-950/60 border border-amber-800/80 px-2 py-1 rounded-lg">
+            <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+            <span className="font-mono">AGENCY PREVIEW</span>
+          </div>
         </div>
       </div>
 
@@ -375,66 +406,90 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                   </div>
 
                   {/* Interactive Before/After Split Frame */}
-                  <div
-                    ref={sliderRef}
-                    onMouseMove={(e) => {
-                      if (e.buttons === 1) handleSliderMove(e);
-                    }}
-                    onClick={handleSliderMove}
-                    onTouchMove={handleSliderMove}
-                    className="relative w-full max-w-4xl mx-auto h-[380px] md:h-[440px] rounded-2xl overflow-hidden cursor-ew-resize select-none border shadow-2xl"
-                    style={{
-                      borderColor: "rgba(148, 163, 184, 0.25)",
-                      borderRadius: "var(--theme-radius)",
-                    }}
-                  >
-                    {/* AFTER Panel (Full base) */}
+                  {beforeAsset && afterAsset ? (
                     <div
-                      className="absolute inset-0 flex flex-col justify-end p-8 text-white bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950"
-                    >
-                      <div className="max-w-md space-y-2 relative z-10">
-                        <span className="px-2.5 py-1 rounded text-xs font-mono font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                          After Transformation
-                        </span>
-                        <h3 className="text-2xl font-bold">
-                          {categoryPack.recommendedSections.find((s) => s.id === activeSections[0]?.id)?.previewSnippet?.afterLabel || "Pristine Luxury Perfection"}
-                        </h3>
-                        <p className="text-xs text-slate-300 leading-relaxed">
-                          Ceramic-coated finish, bespoke styling, and flawless outcome engineered by our master specialists.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* BEFORE Panel (Clipped by sliderPosition) */}
-                    <div
-                      className="absolute inset-0 flex flex-col justify-end p-8 text-slate-300 bg-gradient-to-tr from-stone-950 via-stone-900 to-neutral-900 border-r-2 border-white"
+                      ref={sliderRef}
+                      onMouseMove={(e) => {
+                        if (e.buttons === 1) handleSliderMove(e);
+                      }}
+                      onClick={handleSliderMove}
+                      onTouchMove={handleSliderMove}
+                      className="relative w-full max-w-4xl mx-auto h-[380px] md:h-[460px] rounded-2xl overflow-hidden cursor-ew-resize select-none border shadow-2xl"
                       style={{
-                        clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)`,
+                        borderColor: "rgba(148, 163, 184, 0.25)",
+                        borderRadius: "var(--theme-radius)",
                       }}
                     >
-                      <div className="max-w-md space-y-2 relative z-10">
-                        <span className="px-2.5 py-1 rounded text-xs font-mono font-bold uppercase bg-amber-500/20 text-amber-400 border border-amber-500/40">
-                          Initial Raw State
-                        </span>
-                        <h3 className="text-2xl font-bold text-white">
-                          {categoryPack.recommendedSections.find((s) => s.id === activeSections[0]?.id)?.previewSnippet?.beforeLabel || "Raw Wear & Baseline Condition"}
-                        </h3>
-                        <p className="text-xs text-slate-400 leading-relaxed">
-                          Initial evaluation showing surface wear, stress, and unrefined aesthetics prior to bespoke treatment.
-                        </p>
+                      {/* AFTER Panel (Full base) */}
+                      <img
+                        src={afterAsset.fileUrl}
+                        alt="After Transformation"
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-8 text-white pointer-events-none">
+                        <div className="max-w-md space-y-2 relative z-10">
+                          <span className="px-2.5 py-1 rounded text-xs font-mono font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                            After Transformation
+                          </span>
+                          <h3 className="text-2xl font-bold">
+                            {afterAsset.name || categoryPack.recommendedSections.find((s) => s.id === activeSections[0]?.id)?.previewSnippet?.afterLabel || "Pristine Luxury Perfection"}
+                          </h3>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Drag Handle Divider */}
-                    <div
-                      className="absolute top-0 bottom-0 w-1 bg-white shadow-2xl flex items-center justify-center pointer-events-none"
-                      style={{ left: `${sliderPosition}%` }}
-                    >
-                      <div className="h-10 w-10 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-2xl -ml-0.5">
-                        <MoveHorizontal className="h-5 w-5" />
+                      {/* BEFORE Panel (Clipped by sliderPosition) */}
+                      <div
+                        className="absolute inset-0 overflow-hidden border-r-2 border-white pointer-events-none"
+                        style={{
+                          width: `${sliderPosition}%`,
+                        }}
+                      >
+                        <img
+                          src={beforeAsset.fileUrl}
+                          alt="Before Transformation"
+                          className="absolute inset-0 h-full max-w-none object-cover"
+                          style={{
+                            width: sliderRef.current ? `${sliderRef.current.clientWidth}px` : "100%",
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-8 text-white">
+                          <div className="max-w-md space-y-2 relative z-10">
+                            <span className="px-2.5 py-1 rounded text-xs font-mono font-bold uppercase bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                              Initial Raw State
+                            </span>
+                            <h3 className="text-2xl font-bold text-white">
+                              {beforeAsset.name || categoryPack.recommendedSections.find((s) => s.id === activeSections[0]?.id)?.previewSnippet?.beforeLabel || "Raw Baseline Condition"}
+                            </h3>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Drag Handle Divider */}
+                      <div
+                        className="absolute top-0 bottom-0 w-1 bg-white shadow-2xl flex items-center justify-center pointer-events-none"
+                        style={{ left: `${sliderPosition}%` }}
+                      >
+                        <div className="h-10 w-10 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-2xl -ml-0.5">
+                          <MoveHorizontal className="h-5 w-5" />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="max-w-4xl mx-auto rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-10 text-center space-y-3">
+                      <Sliders className="h-10 w-10 text-indigo-400 mx-auto" />
+                      <h3 className="text-base font-bold text-white">Before/After Transformation Slot</h3>
+                      <p className="text-xs text-slate-400 max-w-md mx-auto">
+                        No real before/after image pair is currently assigned to this project. Upload your transformation photography in the Media Studio.
+                      </p>
+                      <Link
+                        href={`/projects/${project.id}/media`}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg transition-colors"
+                      >
+                        <ImageIcon className="h-3.5 w-3.5" />
+                        <span>Open Media Studio to Assign Photos</span>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </section>
             )}
@@ -471,14 +526,42 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
                   return (
                     <section
                       key={section.id}
-                      className="py-16 md:py-24 px-6 md:px-12 border-b"
+                      className="py-16 md:py-24 px-6 md:px-12 border-b relative overflow-hidden"
                       style={{
                         backgroundColor: isEven ? "var(--theme-bg)" : "var(--theme-surface)",
                         borderColor: "rgba(148, 163, 184, 0.12)",
                       }}
                     >
+                      {/* Authentic Hero Video Background if assigned to HERO_BACKGROUND slot */}
+                      {idx === 0 && heroVideo && (
+                        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-40">
+                          <video
+                            src={heroVideo.fileUrl}
+                            poster={heroPoster?.fileUrl}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+                        </div>
+                      )}
+
+                      {/* Authentic Hero Image Background if assigned to HERO_BACKGROUND slot */}
+                      {idx === 0 && !heroVideo && heroImage && (
+                        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-30">
+                          <img
+                            src={heroImage.fileUrl}
+                            alt="Hero Background"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent" />
+                        </div>
+                      )}
+
                       <div
-                        className="mx-auto"
+                        className="mx-auto relative z-10"
                         style={{ maxWidth: design.layout.containerWidth }}
                       >
                         {/* Section Tag */}

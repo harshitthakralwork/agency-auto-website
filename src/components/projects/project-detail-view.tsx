@@ -22,6 +22,8 @@ import {
   Box,
   Layout,
   Video,
+  Image as ImageIcon,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -223,6 +225,13 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
             <Button variant="outline" size="sm" className="gap-1.5">
               <Edit className="h-3.5 w-3.5" />
               <span>Edit Metadata</span>
+            </Button>
+          </Link>
+
+          <Link href={`/projects/${project.id}/media`}>
+            <Button variant="secondary" size="sm" className="gap-1.5 text-cyan-300">
+              <ImageIcon className="h-3.5 w-3.5" />
+              <span>Media Studio</span>
             </Button>
           </Link>
 
@@ -522,6 +531,34 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
                   </span>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Media & Asset Pipeline Card */}
+          <Card className="border-slate-800 bg-slate-950/60">
+            <CardHeader className="p-5 pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4 text-cyan-400" />
+                  <span>Media & Asset Pipeline</span>
+                </CardTitle>
+                <Link href={`/projects/${project.id}/media`}>
+                  <span className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 underline cursor-pointer">
+                    Open Studio →
+                  </span>
+                </Link>
+              </div>
+              <CardDescription>
+                Assign images, before/after transformation pairs, and video backgrounds.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 pt-2">
+              <Link href={`/projects/${project.id}/media`}>
+                <Button variant="outline" size="sm" className="w-full gap-2 border-slate-700 hover:border-cyan-500 hover:text-cyan-300">
+                  <Upload className="h-3.5 w-3.5" />
+                  <span>Manage Project Media</span>
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

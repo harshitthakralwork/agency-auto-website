@@ -25,6 +25,7 @@ import {
   Video,
   SunMedium,
   SlidersHorizontal,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -282,6 +283,13 @@ export function DesignStudioView({ project }: DesignStudioProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link href={`/projects/${project.id}/media`}>
+            <Button variant="outline" size="sm" className="gap-1.5 text-cyan-300 border-cyan-800/80 hover:border-cyan-500">
+              <ImageIcon className="h-4 w-4 text-cyan-400" />
+              <span>Media Studio</span>
+            </Button>
+          </Link>
+
           <Link href={`/projects/${project.id}/preview`} target="_blank">
             <Button variant="outline" size="sm" className="gap-1.5">
               <Eye className="h-4 w-4" />

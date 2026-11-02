@@ -12,6 +12,7 @@ export default async function ProjectPreviewPage({
     where: { id },
     include: {
       designConfig: true,
+      assets: true,
     },
   });
 
