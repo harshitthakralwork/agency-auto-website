@@ -21,17 +21,44 @@ export interface ExtractionResult {
 
 export class VideoFrameExtractor {
   private static activeCommands: Map<string, ffmpeg.FfmpegCommand> = new Map();
+  private static abortedJobs: Set<string> = new Set();
 
   static abort(jobId: string): boolean {
+    this.abortedJobs.add(jobId);
     const cmd = this.activeCommands.get(jobId);
     if (cmd) {
       try {
+        const pid = (cmd as any).ffmpegProc?.pid;
+        if (pid) {
+          if (process.platform === "win32") {
+            try {
+              const { execSync } = require("child_process");
+              execSync(`taskkill /F /T /PID ${pid} 2>nul`);
+            } catch {}
+          } else {
+            try {
+              process.kill(-pid, "SIGKILL");
+            } catch {
+              try {
+                process.kill(pid, "SIGKILL");
+              } catch {}
+            }
+          }
+        }
         cmd.kill("SIGKILL");
       } catch {}
       this.activeCommands.delete(jobId);
       return true;
     }
     return false;
+  }
+
+  static isAborted(jobId: string): boolean {
+    return this.abortedJobs.has(jobId);
+  }
+
+  static clearAbort(jobId: string): void {
+    this.abortedJobs.delete(jobId);
   }
 
   static async extract(
@@ -71,9 +98,18 @@ export class VideoFrameExtractor {
     await fs.rm(outputDir, { recursive: true, force: true });
     await fs.mkdir(tempDir, { recursive: true });
 
+    VideoFrameExtractor.clearAbort(jobId);
+
     try {
+      if (VideoFrameExtractor.isAborted(jobId)) {
+        throw new Error("Job cancelled before start");
+      }
+
       // 1. Inspect metadata
       const metadata = await VideoInspector.inspect(videoFilePath);
+      if (VideoFrameExtractor.isAborted(jobId)) {
+        throw new Error("Job cancelled during metadata inspection");
+      }
       if (onProgress) onProgress(10);
 
       const targetFps = Math.min(Math.max(options.targetFps || 24, 1), 30);
@@ -139,6 +175,9 @@ export class VideoFrameExtractor {
       const total = rawFiles.length;
 
       for (let i = 0; i < total; i++) {
+        if (VideoFrameExtractor.isAborted(jobId)) {
+          throw new Error("Job cancelled during image optimization");
+        }
         const rawFile = rawFiles[i];
         const rawPath = path.join(tempDir, rawFile);
         const webpFilename = `frame_${String(i).padStart(4, "0")}.webp`;
@@ -216,11 +255,14 @@ export class VideoFrameExtractor {
         posterUrl,
       };
     } catch (err) {
-      // Clean up temporary files on failure
+      // Clean up temporary and partial files on failure
       try {
-        await fs.rm(tempDir, { recursive: true, force: true });
+        await fs.rm(outputDir, { recursive: true, force: true });
       } catch {}
       throw err;
+    } finally {
+      VideoFrameExtractor.activeCommands.delete(jobId);
+      VideoFrameExtractor.clearAbort(jobId);
     }
   }
 }

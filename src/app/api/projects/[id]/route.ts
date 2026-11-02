@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { projectUpdateSchema } from "@/lib/validations/project";
 import { storage } from "@/lib/storage/local-adapter";
+import { VideoProcessingQueue } from "@/modules/cinematic/video/queue";
 
 export async function GET(
   _req: NextRequest,
@@ -100,11 +101,15 @@ export async function DELETE(
       );
     }
 
+    // 1. Cancel and abort any active video extraction workers for this project
+    await VideoProcessingQueue.cancelProjectJobs(id);
+
+    // 2. Cascade delete project from SQLite
     await db.project.delete({
       where: { id },
     });
 
-    // Clean up physical media directory safely
+    // 3. Clean up physical media directory safely
     await storage.deleteProjectDirectory(id);
 
     return NextResponse.json({

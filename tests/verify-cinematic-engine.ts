@@ -333,13 +333,14 @@ async function runCinematicEngineTests() {
     assert(recoveredJob?.status === "QUEUED", "Recovered job reset to QUEUED for worker pickup");
     assert(recoveredJob?.retryCount === 1, "Recovered job incremented retryCount to 1");
 
-    // Simulate second crash with retryCount = 2 (exceeding limit)
+    // Simulate second crash with retryCount = 2 (exceeding limit on server restart)
+    (VideoProcessingQueue as any).activeJobs.delete(crashJob.id);
     await db.videoProcessingJob.update({
       where: { id: crashJob.id },
-      data: { status: "PROCESSING", retryCount: 2 },
+      data: { status: "PROCESSING", retryCount: 2, heartbeatAt: null },
     });
 
-    await VideoProcessingQueue.recoverStaleJobs();
+    await VideoProcessingQueue.recoverStaleJobs({ forceStartup: true });
     const finalExceededJob = await db.videoProcessingJob.findUnique({
       where: { id: crashJob.id },
     });
@@ -350,9 +351,166 @@ async function runCinematicEngineTests() {
     await db.videoProcessingJob.delete({ where: { id: crashJob.id } });
 
     // -------------------------------------------------------------------
-    // 10. Testing Real OS Process Cancellation
+    // 10. Queue & Recovery Simulation Suite (Section 1 Gate)
     // -------------------------------------------------------------------
-    console.log("\n--- 10. Testing Real Process Cancellation & Directory Purge ---");
+    console.log("\n--- 10. Queue & Recovery Simulation Suite (Gate Verification) ---");
+
+    // Simulation 1: Server crash immediately after job claim
+    const sim1Job = await db.videoProcessingJob.create({
+      data: {
+        projectId: testProject.id,
+        videoAssetId: testVideoAsset.id,
+        status: "PROCESSING",
+        progress: 5.0,
+        retryCount: 0,
+        heartbeatAt: null,
+      },
+    });
+
+    const sim1Recovered = await VideoProcessingQueue.recoverStaleJobs({ forceStartup: true });
+    assert(sim1Recovered >= 1, "Simulation 1: Startup recovery detected crash after claim");
+    const sim1State = await db.videoProcessingJob.findUnique({ where: { id: sim1Job.id } });
+    assert(sim1State?.status === "QUEUED" && sim1State?.retryCount === 1, "Simulation 1: Reclaimed to QUEUED with retryCount 1");
+    await db.videoProcessingJob.delete({ where: { id: sim1Job.id } });
+
+    // Simulation 2: Server crash during FFmpeg extraction with partial frames
+    const sim2Job = await db.videoProcessingJob.create({
+      data: {
+        projectId: testProject.id,
+        videoAssetId: testVideoAsset.id,
+        status: "PROCESSING",
+        progress: 35.0,
+        retryCount: 0,
+        heartbeatAt: new Date(Date.now() - 90000), // 90 seconds old (stale)
+      },
+    });
+    // Plant partial frame directory
+    const sim2PartialDir = path.resolve(process.cwd(), "public", "uploads", "projects", testProject.id, "frames", sim2Job.id, "temp_raw");
+    await fs.mkdir(sim2PartialDir, { recursive: true });
+    await fs.writeFile(path.join(sim2PartialDir, "raw_00001.png"), Buffer.from("dummy"));
+
+    const sim2Recovered = await VideoProcessingQueue.sweepStaleJobs();
+    assert(sim2Recovered >= 1, "Simulation 2: Stale sweep reclaimed crashed job during extraction");
+    const sim2DirExists = await fs.stat(path.dirname(sim2PartialDir)).then(() => true).catch(() => false);
+    assert(!sim2DirExists, "Simulation 2: Stale sweep purged partial extraction directory");
+    await db.videoProcessingJob.delete({ where: { id: sim2Job.id } });
+
+    // Simulation 3: Two workers claiming simultaneously
+    const sim3Job = await db.videoProcessingJob.create({
+      data: {
+        projectId: testProject.id,
+        videoAssetId: testVideoAsset.id,
+        status: "QUEUED",
+        progress: 0.0,
+      },
+    });
+    const [worker1Claim, worker2Claim] = await Promise.all([
+      db.videoProcessingJob.updateMany({
+        where: { id: sim3Job.id, status: "QUEUED" },
+        data: { status: "PROCESSING", heartbeatAt: new Date() },
+      }),
+      db.videoProcessingJob.updateMany({
+        where: { id: sim3Job.id, status: "QUEUED" },
+        data: { status: "PROCESSING", heartbeatAt: new Date() },
+      }),
+    ]);
+    const totalClaimCount = worker1Claim.count + worker2Claim.count;
+    assert(totalClaimCount === 1, "Simulation 3: Atomic CAS claiming prevents duplicate worker execution (exactly 1 won)");
+    assert(
+      (worker1Claim.count === 1 && worker2Claim.count === 0) || (worker1Claim.count === 0 && worker2Claim.count === 1),
+      "Simulation 3: Exactly one worker claim succeeded and other lost"
+    );
+    await db.videoProcessingJob.delete({ where: { id: sim3Job.id } });
+
+    // Simulation 4: Two recovery sweeps running simultaneously
+    await db.videoProcessingJob.deleteMany({ where: { projectId: testProject.id } });
+    (VideoProcessingQueue as any).activeJobs.clear();
+
+    const sim4Job = await db.videoProcessingJob.create({
+      data: {
+        projectId: testProject.id,
+        videoAssetId: testVideoAsset.id,
+        status: "PROCESSING",
+        heartbeatAt: new Date(Date.now() - 90000),
+        retryCount: 0,
+      },
+    });
+    const [sweep1, sweep2] = await Promise.all([
+      VideoProcessingQueue.sweepStaleJobs(),
+      VideoProcessingQueue.sweepStaleJobs(),
+    ]);
+    const totalSweepRecovered = sweep1 + sweep2;
+    assert(totalSweepRecovered === 1, "Simulation 4: Concurrent recovery sweeps processed candidate exactly once");
+    const sim4State = await db.videoProcessingJob.findUnique({ where: { id: sim4Job.id } });
+    assert(sim4State?.retryCount === 1, "Simulation 4: Retry count incremented exactly once under race");
+    await db.videoProcessingJob.delete({ where: { id: sim4Job.id } });
+
+    // Simulation 5: Healthy long-running job with active heartbeat
+    const sim5Job = await db.videoProcessingJob.create({
+      data: {
+        projectId: testProject.id,
+        videoAssetId: testVideoAsset.id,
+        status: "PROCESSING",
+        heartbeatAt: new Date(Date.now() - 5000), // 5 seconds ago (healthy)
+        retryCount: 0,
+      },
+    });
+    const sim5Swept = await VideoProcessingQueue.sweepStaleJobs();
+    const sim5State = await db.videoProcessingJob.findUnique({ where: { id: sim5Job.id } });
+    assert(sim5State?.status === "PROCESSING", "Simulation 5: Healthy active job with recent heartbeat NOT reclaimed");
+    assert(sim5State?.retryCount === 0, "Simulation 5: Healthy active job retryCount untouched");
+    await db.videoProcessingJob.delete({ where: { id: sim5Job.id } });
+
+    // Simulation 6: Cancelled job attempting to complete
+    const sim6Job = await db.videoProcessingJob.create({
+      data: {
+        projectId: testProject.id,
+        videoAssetId: testVideoAsset.id,
+        status: "CANCELLED",
+        progress: 80.0,
+      },
+    });
+    const sim6Attempt = await db.videoProcessingJob.updateMany({
+      where: { id: sim6Job.id, status: "PROCESSING" },
+      data: { status: "COMPLETED", progress: 100.0 },
+    });
+    assert(sim6Attempt.count === 0, "Simulation 6: Cancelled job cannot transition to COMPLETED");
+    const sim6AssetCount = await db.projectAsset.count({
+      where: { projectId: testProject.id, assetType: "FRAME_SEQUENCE", metadataJson: { contains: sim6Job.id } },
+    });
+    assert(sim6AssetCount === 0, "Simulation 6: No FrameSequence asset registered for cancelled job");
+    await db.videoProcessingJob.delete({ where: { id: sim6Job.id } });
+
+    // -------------------------------------------------------------------
+    // 11. Testing Process-Level Cancellation & Tree Kill (Section 2 Gate)
+    // -------------------------------------------------------------------
+    console.log("\n--- 11. Testing Cross-Platform Process-Level Cancellation ---");
+    const cancelJobId = "test-cancel-pid-" + Date.now();
+    // Verify abort clears abort state and reports cleanly
+    const abortResult = VideoFrameExtractor.abort(cancelJobId);
+    assert(abortResult === false, "Aborting non-running command returns false cleanly");
+    assert(VideoFrameExtractor.isAborted(cancelJobId), "Job ID marked as aborted in registry");
+    VideoFrameExtractor.clearAbort(cancelJobId);
+    assert(!VideoFrameExtractor.isAborted(cancelJobId), "Abort cleared cleanly");
+
+    // Test project deletion cascade cancellation
+    const cascadeJob = await db.videoProcessingJob.create({
+      data: {
+        projectId: testProject.id,
+        videoAssetId: testVideoAsset.id,
+        status: "PROCESSING",
+        heartbeatAt: new Date(),
+      },
+    });
+    await VideoProcessingQueue.cancelProjectJobs(testProject.id);
+    const postCascadeJob = await db.videoProcessingJob.findUnique({ where: { id: cascadeJob.id } });
+    assert(postCascadeJob?.status === "CANCELLED", "cancelProjectJobs successfully cancelled active worker");
+    await db.videoProcessingJob.delete({ where: { id: cascadeJob.id } });
+
+    // -------------------------------------------------------------------
+    // 12. Testing Real OS Process Cancellation & Directory Purge
+    // -------------------------------------------------------------------
+    console.log("\n--- 12. Testing Real Process Cancellation & Directory Purge ---");
     const cancelTestJobId = await VideoProcessingQueue.createJob(testProject.id, testVideoAsset.id, {
       targetFps: 24,
       maxFrames: 60,

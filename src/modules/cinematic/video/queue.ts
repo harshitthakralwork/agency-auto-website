@@ -9,6 +9,9 @@ export class VideoProcessingQueue {
   private static activeJobs: Map<string, boolean> = new Map();
   private static isInitialized = false;
   private static isWorkerLoopRunning = false;
+  private static isRecovering = false;
+
+  private static STALE_JOB_TIMEOUT_MS = 60 * 1000; // 60 seconds without heartbeat
 
   /**
    * Initializes the queue and performs startup recovery on stale or orphaned jobs.
@@ -16,46 +19,75 @@ export class VideoProcessingQueue {
   static async initialize(): Promise<void> {
     if (this.isInitialized) return;
     this.isInitialized = true;
-    await this.recoverStaleJobs();
+    await this.recoverStaleJobs({ forceStartup: true });
   }
 
   /**
-   * Recovers jobs that were left in PROCESSING state from a previous server crash or restart.
+   * Periodic recovery sweep for stale jobs whose heartbeat expired.
    */
-  static async recoverStaleJobs(): Promise<number> {
+  static async sweepStaleJobs(): Promise<number> {
+    return this.recoverStaleJobs({ forceStartup: false });
+  }
+
+  /**
+   * Recovers jobs left in PROCESSING state from a previous server crash or dead worker.
+   * Mutex lock and atomic conditional updates prevent concurrent recovery sweeps from duplicating execution.
+   */
+  static async recoverStaleJobs(options: { forceStartup?: boolean } = {}): Promise<number> {
+    if (this.isRecovering) return 0;
+    this.isRecovering = true;
+
     try {
-      // Find jobs stuck in PROCESSING
+      const staleThreshold = new Date(Date.now() - this.STALE_JOB_TIMEOUT_MS);
+
+      // Query candidate jobs:
+      // On startup (forceStartup = true), all PROCESSING jobs are orphans from the dead server.
+      // In periodic sweeps, only jobs with null heartbeat or heartbeat older than threshold.
       const stuckJobs = await prisma.videoProcessingJob.findMany({
-        where: { status: "PROCESSING" },
+        where: {
+          status: "PROCESSING",
+          ...(options.forceStartup
+            ? {}
+            : {
+                OR: [
+                  { heartbeatAt: null },
+                  { heartbeatAt: { lt: staleThreshold } },
+                ],
+              }),
+        },
       });
 
       let recovered = 0;
       for (const job of stuckJobs) {
+        // Guard: Do not touch jobs actively being executed by THIS running worker process
+        if (!options.forceStartup && this.activeJobs.has(job.id)) {
+          continue;
+        }
+
+        const isExceeded = job.retryCount >= 2;
+
+        // Atomic claim: only succeed if the job is STILL in PROCESSING state
+        const claim = await prisma.videoProcessingJob.updateMany({
+          where: { id: job.id, status: "PROCESSING" },
+          data: {
+            status: isExceeded ? "FAILED" : "QUEUED",
+            progress: 0.0,
+            retryCount: { increment: 1 },
+            heartbeatAt: null,
+            errorMessage: isExceeded
+              ? "Processing interrupted by server restart (max retries exceeded)"
+              : null,
+          },
+        });
+
+        if (claim.count === 0) {
+          // Another recovery sweep or active worker claimed or updated this record
+          continue;
+        }
+
         // Clean up any abandoned partial files
         await this.cleanOrphanedFiles(job.projectId, job.id);
-
-        if (job.retryCount < 2) {
-          // Re-queue with incremented retry count
-          await prisma.videoProcessingJob.update({
-            where: { id: job.id },
-            data: {
-              status: "QUEUED",
-              progress: 0.0,
-              retryCount: { increment: 1 },
-              heartbeatAt: null,
-            },
-          });
-          recovered++;
-        } else {
-          // Exceeded retries, mark failed cleanly
-          await prisma.videoProcessingJob.update({
-            where: { id: job.id },
-            data: {
-              status: "FAILED",
-              errorMessage: "Processing interrupted by server restart (max retries exceeded)",
-            },
-          });
-        }
+        recovered++;
       }
 
       if (recovered > 0) {
@@ -66,6 +98,8 @@ export class VideoProcessingQueue {
     } catch (err) {
       console.error("Error during stale job recovery:", err);
       return 0;
+    } finally {
+      this.isRecovering = false;
     }
   }
 
@@ -237,8 +271,8 @@ export class VideoProcessingQueue {
         return;
       }
 
-      // Mark completed
-      await prisma.videoProcessingJob.updateMany({
+      // Mark completed only if status is still PROCESSING
+      const completeRes = await prisma.videoProcessingJob.updateMany({
         where: { id: jobId, status: "PROCESSING" },
         data: {
           status: "COMPLETED",
@@ -251,6 +285,12 @@ export class VideoProcessingQueue {
           height: result.height,
         },
       });
+
+      if (completeRes.count === 0) {
+        // Job was cancelled or deleted concurrently - do not create asset
+        await this.cleanOrphanedFiles(options.projectId, jobId);
+        return;
+      }
 
       // Register Frame Sequence Asset
       await prisma.projectAsset.create({
@@ -354,6 +394,30 @@ export class VideoProcessingQueue {
 
     // 4. Trigger queue worker to process any waiting jobs
     this.triggerWorker();
+  }
+
+  /**
+   * Cancels all queued or actively processing jobs for a project.
+   * Ensures no background workers continue executing or writing files after project deletion.
+   */
+  static async cancelProjectJobs(projectId: string): Promise<void> {
+    if (!projectId || projectId.includes("..") || projectId.includes("/") || projectId.includes("\\")) {
+      return;
+    }
+
+    const activeJobs = await prisma.videoProcessingJob.findMany({
+      where: {
+        projectId,
+        status: { in: ["QUEUED", "PROCESSING"] },
+      },
+      select: { id: true },
+    });
+
+    for (const job of activeJobs) {
+      try {
+        await this.cancelJob(job.id, projectId);
+      } catch {}
+    }
   }
 
   static async deleteJob(jobId: string, projectId: string): Promise<void> {
