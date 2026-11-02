@@ -36,7 +36,7 @@ export interface ThreeDCameraConfig {
   target?: [number, number, number];
 }
 
-export interface ThreeDSceneConfig {
+export interface ThreeDCoreSceneConfig {
   backgroundColor?: string | null;
   transparent?: boolean;
   fogColor?: string;

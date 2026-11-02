@@ -351,6 +351,12 @@ export function MediaStudioView({ project, initialAssets }: MediaStudioViewProps
               <span>Design Studio</span>
             </Button>
           </Link>
+          <Link href={`/projects/${project.id}/3d`}>
+            <Button variant="outline" size="sm" className="gap-1.5 text-cyan-300 border-cyan-800/80 bg-cyan-950/30">
+              <Box className="h-3.5 w-3.5" />
+              <span>3D Scene Studio</span>
+            </Button>
+          </Link>
           <Link href={`/projects/${project.id}/preview`} target="_blank">
             <Button size="sm" className="gap-1.5 shadow-md shadow-indigo-600/20">
               <Eye className="h-3.5 w-3.5" />

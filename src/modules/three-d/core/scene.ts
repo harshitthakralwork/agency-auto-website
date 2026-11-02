@@ -1,11 +1,11 @@
 import * as THREE from "three";
-import { ThreeDSceneConfig } from "../types";
+import { ThreeDCoreSceneConfig } from "../types";
 
 export class ThreeDScene {
   /**
    * Creates a configured Scene graph with optional background and atmospheric fog.
    */
-  static create(config: ThreeDSceneConfig = {}): THREE.Scene {
+  static create(config: ThreeDCoreSceneConfig = {}): THREE.Scene {
     const scene = new THREE.Scene();
 
     if (config.backgroundColor && !config.transparent) {

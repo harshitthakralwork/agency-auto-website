@@ -14,6 +14,13 @@ export * from "./assets/loader";
 
 // Lighting
 export * from "./lighting/presets";
+export * from "./lighting/engine";
+
+// Materials
+export * from "./materials/engine";
+
+// Scene Engine
+export * from "./scene";
 
 // Performance
 export * from "./performance/capabilities";

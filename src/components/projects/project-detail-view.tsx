@@ -242,6 +242,13 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
             </Button>
           </Link>
 
+          <Link href={`/projects/${project.id}/3d`}>
+            <Button variant="secondary" size="sm" className="gap-1.5 text-indigo-300 border border-indigo-800/60 bg-indigo-950/40 hover:bg-indigo-900/60">
+              <Box className="h-3.5 w-3.5" />
+              <span>3D Scene Studio</span>
+            </Button>
+          </Link>
+
           <Link href={`/projects/${project.id}/preview`} target="_blank">
             <Button size="sm" className="gap-1.5 shadow-md shadow-indigo-600/20">
               <Eye className="h-3.5 w-3.5" />
