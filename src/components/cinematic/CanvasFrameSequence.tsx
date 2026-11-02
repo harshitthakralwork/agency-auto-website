@@ -80,11 +80,19 @@ export function CanvasFrameSequence({
     const handleResize = () => renderer.resize();
     window.addEventListener("resize", handleResize);
 
+    // Also observe container dimension changes (e.g. preview viewport switching)
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+      ro = new ResizeObserver(() => renderer.resize());
+      ro.observe(containerRef.current);
+    }
+
     // If reduced motion is requested, just render first frame or poster and exit
     if (prefersReducedMotion()) {
       renderer.renderIndex(0);
       return () => {
         window.removeEventListener("resize", handleResize);
+        if (ro) ro.disconnect();
         renderer.destroy();
       };
     }
@@ -106,6 +114,7 @@ export function CanvasFrameSequence({
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      if (ro) ro.disconnect();
       if (st) st.kill();
       renderer.destroy();
       rendererRef.current = null;
@@ -154,3 +163,4 @@ export function CanvasFrameSequence({
     </div>
   );
 }
+

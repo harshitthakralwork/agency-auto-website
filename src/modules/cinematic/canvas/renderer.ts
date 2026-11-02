@@ -14,7 +14,8 @@ export class CanvasFrameRenderer {
   private cache: FrameCache;
   private fitMode: "cover" | "contain";
   private maxDpr: number;
-  private currentFrameIndex: number = -1;
+  private currentDrawnIndex: number = -1;
+  private lastRequestedIndex: number = -1;
   private posterImage: HTMLImageElement | null = null;
   private isDestroyed: boolean = false;
   private animationFrameId: number | null = null;
@@ -34,6 +35,10 @@ export class CanvasFrameRenderer {
     this.init();
   }
 
+  getCurrentDrawnIndex(): number {
+    return this.currentDrawnIndex;
+  }
+
   private init() {
     this.resize();
 
@@ -43,7 +48,7 @@ export class CanvasFrameRenderer {
       this.posterImage.crossOrigin = "anonymous";
       this.posterImage.src = this.manifest.posterUrl;
       this.posterImage.onload = () => {
-        if (this.currentFrameIndex === -1 && !this.isDestroyed) {
+        if (this.currentDrawnIndex === -1 && !this.isDestroyed) {
           this.drawPoster();
         }
       };
@@ -54,9 +59,9 @@ export class CanvasFrameRenderer {
     const preloadCount = Math.min(5, total);
     for (let i = 0; i < preloadCount; i++) {
       this.cache.loadFrame(i, this.manifest.frames[i].url).then((img) => {
-        if (i === 0 && this.currentFrameIndex <= 0 && !this.isDestroyed) {
+        if (i === 0 && this.currentDrawnIndex <= 0 && !this.isDestroyed) {
           this.drawImage(img);
-          this.currentFrameIndex = 0;
+          this.currentDrawnIndex = 0;
         }
       }).catch(() => {});
     }
@@ -74,8 +79,8 @@ export class CanvasFrameRenderer {
       this.canvas.width = width;
       this.canvas.height = height;
 
-      if (this.currentFrameIndex >= 0) {
-        const img = this.cache.get(this.currentFrameIndex);
+      if (this.currentDrawnIndex >= 0) {
+        const img = this.cache.get(this.currentDrawnIndex);
         if (img) {
           this.drawImage(img);
         } else if (this.posterImage) {
@@ -100,11 +105,13 @@ export class CanvasFrameRenderer {
   }
 
   renderIndex(targetIndex: number) {
-    if (this.isDestroyed || targetIndex === this.currentFrameIndex) return;
+    if (this.isDestroyed) return;
 
     const total = this.manifest.frames.length;
     if (targetIndex < 0 || targetIndex >= total) return;
+    if (targetIndex === this.lastRequestedIndex && targetIndex === this.currentDrawnIndex) return;
 
+    this.lastRequestedIndex = targetIndex;
     const targetUrl = this.manifest.frames[targetIndex].url;
 
     // Trigger preload window around target index
@@ -114,17 +121,17 @@ export class CanvasFrameRenderer {
     if (this.cache.has(targetIndex)) {
       const img = this.cache.get(targetIndex)!;
       this.drawImage(img);
-      this.currentFrameIndex = targetIndex;
+      this.currentDrawnIndex = targetIndex;
     } else {
       // Async load requested frame
       this.cache.loadFrame(targetIndex, targetUrl).then((img) => {
-        if (!this.isDestroyed && this.currentFrameIndex === targetIndex) {
+        if (!this.isDestroyed && this.lastRequestedIndex === targetIndex) {
           this.drawImage(img);
+          this.currentDrawnIndex = targetIndex;
         }
       }).catch(() => {
         // Fallback: stay on current frame or poster
       });
-      this.currentFrameIndex = targetIndex;
     }
   }
 
@@ -175,3 +182,4 @@ export class CanvasFrameRenderer {
     this.ctx = null;
   }
 }
+

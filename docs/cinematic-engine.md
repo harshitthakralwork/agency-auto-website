@@ -161,3 +161,4 @@ Every cinematic component automatically detects user preferences:
 - **Bounded LRU Cache**: Memory is limited to 40 frames at a time (`FrameCache`). Frames outside the current viewport scrub window are automatically released.
 - **DPI Clamping**: High-DPI screens are clamped to `devicePixelRatio <= 2` to prevent 4K/8K frame buffers from exhausting mobile memory.
 - **Priority Preloading**: Initial 5 frames are loaded immediately; subsequent frames are loaded in a sliding window as the user scrolls.
+

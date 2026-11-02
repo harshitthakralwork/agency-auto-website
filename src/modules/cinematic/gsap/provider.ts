@@ -30,3 +30,4 @@ export function createGSAPContext(scopeRef: React.RefObject<HTMLElement | null>,
 }
 
 export { gsap, ScrollTrigger };
+

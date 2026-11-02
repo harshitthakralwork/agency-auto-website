@@ -35,9 +35,13 @@ export async function DELETE(
     return NextResponse.json({ message: "Job cancelled and removed" });
   } catch (error: any) {
     console.error("Failed to delete job:", error);
+    const sanitizedMsg = (error.message || "Failed to delete video processing job")
+      .replace(/[A-Za-z]:\\[^\s:]+/gi, "[internal path]")
+      .replace(/\/[\w.-]+(\/[\w.-]+)+/g, "[internal path]");
     return NextResponse.json(
-      { error: "Failed to delete video processing job" },
+      { error: sanitizedMsg },
       { status: 500 }
     );
   }
 }
+

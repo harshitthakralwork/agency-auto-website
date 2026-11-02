@@ -56,8 +56,11 @@ export async function POST(
     );
   } catch (error: any) {
     console.error("Failed to create video job:", error);
+    const sanitizedMsg = (error.message || "Failed to create video processing job")
+      .replace(/[A-Za-z]:\\[^\s:]+/gi, "[internal path]")
+      .replace(/\/[\w.-]+(\/[\w.-]+)+/g, "[internal path]");
     return NextResponse.json(
-      { error: error.message || "Failed to create video processing job" },
+      { error: sanitizedMsg },
       { status: 500 }
     );
   }

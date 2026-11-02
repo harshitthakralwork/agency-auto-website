@@ -50,3 +50,4 @@ export const CINEMATIC_PATTERNS: CinematicPatternDefinition[] = [
     supportedProperties: ["fitMode", "fps", "frameCount", "posterFallback"],
   },
 ];
+

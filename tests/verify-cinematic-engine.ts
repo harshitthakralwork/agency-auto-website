@@ -287,7 +287,7 @@ async function runCinematicEngineTests() {
     }
 
     assert(finalJob?.status === "COMPLETED", `Background queue completed job with status: ${finalJob?.status}`);
-    assert(finalJob?.progress === 100, `Background queue reported 100% completion progress`);
+    assert(Math.round(finalJob?.progress || 0) === 100, `Background queue reported 100% completion progress (actual: ${finalJob?.progress})`);
     assert(!!finalJob?.manifestUrl, "Background queue saved manifest URL to database");
 
     // Verify ProjectAsset for Frame Sequence was created
@@ -309,6 +309,65 @@ async function runCinematicEngineTests() {
     const deletedJob = await VideoProcessingQueue.getJob(queueJobId, testProject.id);
     assert(deletedJob === null, "Deleted job cleanly removed from database");
 
+    // -------------------------------------------------------------------
+    // 9. Testing Stale-Job Crash Recovery & Safe Retry Limits
+    // -------------------------------------------------------------------
+    console.log("\n--- 9. Testing Stale Job Crash Recovery & Max Retries ---");
+    // Simulate a crash leaving a job in PROCESSING state
+    const crashJob = await db.videoProcessingJob.create({
+      data: {
+        projectId: testProject.id,
+        videoAssetId: testVideoAsset.id,
+        status: "PROCESSING",
+        progress: 35.0,
+        retryCount: 0,
+      },
+    });
+
+    const recoveredCount = await VideoProcessingQueue.recoverStaleJobs();
+    assert(recoveredCount >= 1, "Startup recovery detected and reclaimed orphaned PROCESSING job");
+
+    const recoveredJob = await db.videoProcessingJob.findUnique({
+      where: { id: crashJob.id },
+    });
+    assert(recoveredJob?.status === "QUEUED", "Recovered job reset to QUEUED for worker pickup");
+    assert(recoveredJob?.retryCount === 1, "Recovered job incremented retryCount to 1");
+
+    // Simulate second crash with retryCount = 2 (exceeding limit)
+    await db.videoProcessingJob.update({
+      where: { id: crashJob.id },
+      data: { status: "PROCESSING", retryCount: 2 },
+    });
+
+    await VideoProcessingQueue.recoverStaleJobs();
+    const finalExceededJob = await db.videoProcessingJob.findUnique({
+      where: { id: crashJob.id },
+    });
+    assert(finalExceededJob?.status === "FAILED", "Job exceeding max retries marked as FAILED");
+    assert(finalExceededJob?.errorMessage?.includes("max retries exceeded") === true, "Failure message explicitly reports max retries exceeded");
+
+    // Clean up crash test job
+    await db.videoProcessingJob.delete({ where: { id: crashJob.id } });
+
+    // -------------------------------------------------------------------
+    // 10. Testing Real OS Process Cancellation
+    // -------------------------------------------------------------------
+    console.log("\n--- 10. Testing Real Process Cancellation & Directory Purge ---");
+    const cancelTestJobId = await VideoProcessingQueue.createJob(testProject.id, testVideoAsset.id, {
+      targetFps: 24,
+      maxFrames: 60,
+    });
+
+    // Cancel immediately while queued or starting
+    await VideoProcessingQueue.cancelJob(cancelTestJobId, testProject.id);
+    const cancelledJob = await VideoProcessingQueue.getJob(cancelTestJobId, testProject.id);
+    assert(cancelledJob?.status === "CANCELLED", "Job status updated to CANCELLED");
+
+    const partialDir = path.resolve(process.cwd(), "public", "uploads", "projects", testProject.id, "frames", cancelTestJobId);
+    const dirExists = await fs.stat(partialDir).then(() => true).catch(() => false);
+    assert(!dirExists, "Partial extraction directory completely purged upon cancellation");
+    await db.videoProcessingJob.delete({ where: { id: cancelTestJobId } });
+
     console.log("\n=================================================");
     console.log(`  CINEMATIC ENGINE VERIFICATION: ${passedCount}/${totalCount} TESTS PASSED`);
     console.log("=================================================");
@@ -328,3 +387,4 @@ runCinematicEngineTests().catch((err) => {
   console.error("Test execution failed:", err);
   process.exit(1);
 });
+

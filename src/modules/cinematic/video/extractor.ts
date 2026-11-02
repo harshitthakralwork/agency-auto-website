@@ -20,6 +20,20 @@ export interface ExtractionResult {
 }
 
 export class VideoFrameExtractor {
+  private static activeCommands: Map<string, ffmpeg.FfmpegCommand> = new Map();
+
+  static abort(jobId: string): boolean {
+    const cmd = this.activeCommands.get(jobId);
+    if (cmd) {
+      try {
+        cmd.kill("SIGKILL");
+      } catch {}
+      this.activeCommands.delete(jobId);
+      return true;
+    }
+    return false;
+  }
+
   static async extract(
     jobId: string,
     options: VideoExtractionOptions,
@@ -75,22 +89,38 @@ export class VideoFrameExtractor {
       const rawPattern = path.join(tempDir, "raw_%05d.png");
 
       await new Promise<void>((resolve, reject) => {
-        ffmpeg(videoFilePath)
+        const cmd = ffmpeg(videoFilePath)
           .outputOptions([
             "-vf", `fps=${effectiveFps}`,
             "-vframes", String(maxFrames),
           ])
           .output(rawPattern)
           .on("progress", (p) => {
-            if (p.percent && onProgress) {
+            let percent = p.percent;
+            if (!percent && p.timemark && metadata.duration > 0) {
+              const parts = p.timemark.split(":");
+              if (parts.length === 3) {
+                const secs = Number(parts[0]) * 3600 + Number(parts[1]) * 60 + parseFloat(parts[2]);
+                percent = Math.min(100, (secs / metadata.duration) * 100);
+              }
+            }
+            if (percent && onProgress) {
               // 10% to 50% for extraction
-              const scaled = 10 + (p.percent * 0.4);
+              const scaled = 10 + (percent * 0.4);
               onProgress(Math.min(Math.round(scaled), 50));
             }
           })
-          .on("end", () => resolve())
-          .on("error", (err) => reject(new Error(`FFmpeg extraction failed: ${err.message}`)))
-          .run();
+          .on("end", () => {
+            VideoFrameExtractor.activeCommands.delete(jobId);
+            resolve();
+          })
+          .on("error", (err) => {
+            VideoFrameExtractor.activeCommands.delete(jobId);
+            reject(new Error(`FFmpeg extraction failed: ${err.message}`));
+          });
+
+        VideoFrameExtractor.activeCommands.set(jobId, cmd);
+        cmd.run();
       });
 
       if (onProgress) onProgress(55);

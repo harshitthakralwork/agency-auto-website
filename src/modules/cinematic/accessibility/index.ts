@@ -8,3 +8,4 @@ export function applyAccessibleStaticState(element: HTMLElement) {
   element.style.transform = "none";
   element.style.visibility = "visible";
 }
+

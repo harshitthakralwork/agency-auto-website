@@ -82,3 +82,4 @@ export interface ParallaxLayerConfig {
   speed: number; // e.g. -0.5 to 0.5
   direction?: "vertical" | "horizontal";
 }
+
