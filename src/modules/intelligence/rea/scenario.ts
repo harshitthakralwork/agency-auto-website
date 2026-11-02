@@ -1,12 +1,30 @@
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import net from "net";
+import { EgressFilterProxy } from "../security/egress-proxy";
 
 export interface BrowserScenarioConfig {
   targetUrl: string;
   viewport?: { width: number; height: number };
   initialWaitMs?: number;
   scrollWaitMs?: number;
+  allowLocalhostForTesting?: boolean;
+  enableEgressProtection?: boolean;
+}
+
+/**
+ * Finds an available dynamic loopback port.
+ */
+function getFreeLoopbackPort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.listen(0, "127.0.0.1", () => {
+      const addr = srv.address() as net.AddressInfo;
+      srv.close(() => resolve(addr.port));
+    });
+    srv.on("error", reject);
+  });
 }
 
 export class REAScenarioBuilder {
@@ -35,6 +53,8 @@ export class REAScenarioBuilder {
 
   /**
    * Builds an isolated, bounded declarative scenario JSON file for REA execution.
+   * If enableEgressProtection is true (default), launches an isolated Chromium instance
+   * routed through an in-process EgressFilterProxy and connects REA via loopback CDP.
    */
   static async createScenarioFile(
     config: BrowserScenarioConfig,
@@ -46,12 +66,57 @@ export class REAScenarioBuilder {
     const scenarioId = `scenario_${crypto.randomBytes(8).toString("hex")}`;
     const scenarioPath = path.resolve(tempDir, `${scenarioId}.json`);
 
-    const scenarioPayload = {
-      browser: {
+    const useEgressProtection = config.enableEgressProtection !== false;
+    let egressProxy: EgressFilterProxy | null = null;
+    let browserInstance: any = null;
+
+    let scenarioBrowserPayload: any;
+
+    if (useEgressProtection) {
+      // 1. Start dedicated in-process EgressFilterProxy
+      egressProxy = new EgressFilterProxy({
+        allowLocalhostForTesting: config.allowLocalhostForTesting,
+      });
+      const { proxyUrl } = await egressProxy.start();
+
+      // 2. Select loopback CDP port and launch proxy-enforced Chromium
+      const cdpPort = await getFreeLoopbackPort();
+      const { chromium } = await import("playwright");
+
+      browserInstance = await chromium.launch({
+        executablePath: browserPath,
+        headless: true,
+        args: [`--remote-debugging-port=${cdpPort}`],
+        proxy: { server: proxyUrl },
+      });
+
+      // 3. Acquire CDP target ID for the initial page
+      const page = await browserInstance.newPage();
+      const cdpSession = await browserInstance.newBrowserCDPSession();
+      const { targetInfos } = await cdpSession.send("Target.getTargets");
+      const pageTarget = targetInfos.find((t: any) => t.type === "page");
+
+      if (!pageTarget) {
+        await browserInstance.close();
+        await egressProxy.stop();
+        throw new Error("Failed to acquire page target from CDP session");
+      }
+
+      scenarioBrowserPayload = {
+        mode: "connect",
+        cdp_endpoint: `http://127.0.0.1:${cdpPort}`,
+        target_id: pageTarget.targetId,
+      };
+    } else {
+      scenarioBrowserPayload = {
         mode: "launch",
         executable_path: browserPath,
         headless: true,
-      },
+      };
+    }
+
+    const scenarioPayload = {
+      browser: scenarioBrowserPayload,
       start_url: {
         url: config.targetUrl,
       },
@@ -85,6 +150,18 @@ export class REAScenarioBuilder {
     await fs.writeFile(scenarioPath, JSON.stringify(scenarioPayload, null, 2), "utf8");
 
     const cleanup = async () => {
+      if (browserInstance) {
+        try {
+          await browserInstance.close();
+        } catch {}
+        browserInstance = null;
+      }
+      if (egressProxy) {
+        try {
+          await egressProxy.stop();
+        } catch {}
+        egressProxy = null;
+      }
       try {
         await fs.unlink(scenarioPath);
       } catch {}
@@ -93,3 +170,5 @@ export class REAScenarioBuilder {
     return { scenarioPath, cleanup };
   }
 }
+
+

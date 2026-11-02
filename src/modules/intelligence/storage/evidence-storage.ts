@@ -158,3 +158,4 @@ export class EvidenceStorageService {
 
 // Default singleton instance
 export const evidenceStorage = new EvidenceStorageService();
+

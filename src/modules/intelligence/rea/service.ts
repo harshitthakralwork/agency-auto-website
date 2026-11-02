@@ -1,5 +1,11 @@
 import { db } from "@/lib/db";
 import { validateTargetUrl, SSRFSecurityError, InvalidUrlError } from "../security/ssrf";
+import { EgressSecurityError, EgressProxyUnavailableError } from "../security/egress-proxy";
+import {
+  ExecutionSemaphore,
+  reaExecutionSemaphore,
+  ConcurrencyLimitExceededError,
+} from "../security/concurrency";
 import { REAScenarioBuilder } from "./scenario";
 import { REARunner, REARunnerError, REATimeoutError, OversizedOutputError } from "./runner";
 import { REAEvidenceParser, MalformedEvidenceError, EvidenceHashMismatchError } from "./parser";
@@ -11,15 +17,22 @@ export interface AnalyzeWebsiteOptions {
   projectId?: string;
   industry?: string;
   allowLocalhostForTesting?: boolean;
+  enableEgressProtection?: boolean;
 }
 
 export class WebsiteIntelligenceService {
   private runner: REARunner;
   private storage: EvidenceStorageService;
+  private semaphore: ExecutionSemaphore;
 
-  constructor(runner?: REARunner, storage?: EvidenceStorageService) {
+  constructor(
+    runner?: REARunner,
+    storage?: EvidenceStorageService,
+    semaphore?: ExecutionSemaphore
+  ) {
     this.runner = runner || new REARunner();
     this.storage = storage || evidenceStorage;
+    this.semaphore = semaphore || reaExecutionSemaphore;
   }
 
   /**
@@ -27,51 +40,63 @@ export class WebsiteIntelligenceService {
    * bounded scenario execution, evidence verification, atomic disk persistence, and SQLite recording.
    */
   async analyzeWebsite(options: AnalyzeWebsiteOptions) {
-    const { targetUrl, projectId, industry, allowLocalhostForTesting = false } = options;
+    const {
+      targetUrl,
+      projectId,
+      industry,
+      allowLocalhostForTesting = false,
+      enableEgressProtection = true,
+    } = options;
 
-    // 1. SSRF and Protocol Validation
-    const validated = await validateTargetUrl(targetUrl, { allowLocalhostForTesting });
+    // 1. Concurrency control: acquire execution slot (strictly 1 active REA browser by default)
+    this.semaphore.acquire();
 
-    // 2. Create initial SQLite record in QUEUED / ANALYZING state
-    const session = await db.researchSession.create({
-      data: {
-        projectId: projectId || null,
-        targetUrl: validated.originalUrl,
-        canonicalUrl: validated.canonicalUrl,
-        targetDomain: validated.hostname,
-        industry: industry || null,
-        status: "ANALYZING",
-        startedAt: new Date(),
-        retryCount: 0,
-      },
-    });
-
+    let session: any = null;
     let storedStoragePath: string | null = null;
     let scenarioCleanup: (() => Promise<void>) | null = null;
 
     try {
-      // 3. Build declarative scenario JSON file
+      // 2. SSRF and Protocol Validation
+      const validated = await validateTargetUrl(targetUrl, { allowLocalhostForTesting });
+
+      // 3. Create initial SQLite record in QUEUED / ANALYZING state
+      session = await db.researchSession.create({
+        data: {
+          projectId: projectId || null,
+          targetUrl: validated.originalUrl,
+          canonicalUrl: validated.canonicalUrl,
+          targetDomain: validated.hostname,
+          industry: industry || null,
+          status: "ANALYZING",
+          startedAt: new Date(),
+          retryCount: 0,
+        },
+      });
+
+      // 4. Build declarative scenario JSON file (with EgressFilterProxy integration)
       const { scenarioPath, cleanup } = await REAScenarioBuilder.createScenarioFile({
         targetUrl: validated.canonicalUrl,
         initialWaitMs: 3000,
         scrollWaitMs: 1500,
+        allowLocalhostForTesting,
+        enableEgressProtection,
       });
       scenarioCleanup = cleanup;
 
-      // 4. Execute REA runner in bounded child process
+      // 5. Execute REA runner in bounded child process
       const rawOutput = await this.runner.runScenario(scenarioPath);
 
-      // 5. Parse and cryptographically verify evidence envelope
+      // 6. Parse and cryptographically verify evidence envelope
       const summary: ParsedEvidenceSummary = REAEvidenceParser.parse(rawOutput);
 
-      // 6. Save verified evidence JSON atomically to non-public disk storage
+      // 7. Save verified evidence JSON atomically to non-public disk storage
       const savedFile = await this.storage.saveEvidence(
         summary.evidenceId,
         rawOutput
       );
       storedStoragePath = savedFile.storagePath;
 
-      // 7. Update SQLite record with verified facts, heuristics, and disk pointer
+      // 8. Update SQLite record with verified facts, heuristics, and disk pointer
       const updated = await db.researchSession.update({
         where: { id: session.id },
         data: {
@@ -101,6 +126,9 @@ export class WebsiteIntelligenceService {
       // Classify structured error code
       let errorCode = "RUNTIME_CRASH";
       if (err instanceof SSRFSecurityError) errorCode = err.code;
+      else if (err instanceof EgressSecurityError) errorCode = err.code;
+      else if (err instanceof EgressProxyUnavailableError) errorCode = err.code;
+      else if (err instanceof ConcurrencyLimitExceededError) errorCode = err.code;
       else if (err instanceof InvalidUrlError) errorCode = err.code;
       else if (err instanceof REATimeoutError) errorCode = err.code;
       else if (err instanceof OversizedOutputError) errorCode = err.code;
@@ -108,23 +136,31 @@ export class WebsiteIntelligenceService {
       else if (err instanceof EvidenceHashMismatchError) errorCode = err.code;
       else if (err instanceof REARunnerError) errorCode = err.code;
 
-      // Record failure state in SQLite
-      const failed = await db.researchSession.update({
-        where: { id: session.id },
-        data: {
-          status: "FAILED",
-          completedAt: new Date(),
-          errorCode,
-          errorMessage: err.message || "Unknown error during website analysis",
-        },
-      });
+      // Record failure state in SQLite if session was created
+      if (session?.id) {
+        try {
+          await db.researchSession.update({
+            where: { id: session.id },
+            data: {
+              status: "FAILED",
+              completedAt: new Date(),
+              errorCode,
+              errorMessage: err.message || "Unknown error during website analysis",
+            },
+          });
+        } catch {}
+      }
 
       throw err;
     } finally {
       // Ensure temp scenario file is always cleaned up
       if (scenarioCleanup) {
-        await scenarioCleanup();
+        try {
+          await scenarioCleanup();
+        } catch {}
       }
+      // Always release concurrency semaphore slot to prevent slot leaks
+      this.semaphore.release();
     }
   }
 
@@ -229,3 +265,4 @@ export class WebsiteIntelligenceService {
 }
 
 export const websiteIntelligence = new WebsiteIntelligenceService();
+

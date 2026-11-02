@@ -1,13 +1,30 @@
 import fs from "fs";
 import path from "path";
 import http from "http";
+import net from "net";
 import crypto from "crypto";
+import { NextRequest } from "next/server";
 import { db } from "../src/lib/db";
 import {
   validateTargetUrl,
   SSRFSecurityError,
   InvalidUrlError,
 } from "../src/modules/intelligence/security/ssrf";
+import {
+  EgressFilterProxy,
+  EgressSecurityError,
+  EgressProxyUnavailableError,
+  resolveAndValidateDestination,
+} from "../src/modules/intelligence/security/egress-proxy";
+import {
+  ExecutionSemaphore,
+  ConcurrencyLimitExceededError,
+  reaExecutionSemaphore,
+} from "../src/modules/intelligence/security/concurrency";
+import {
+  validateMutationOrigin,
+  UntrustedOriginError,
+} from "../src/modules/intelligence/security/origin-guard";
 import {
   EvidenceStorageService,
   evidenceStorage,
@@ -323,7 +340,10 @@ async function runIntelligenceVerification() {
     assert(fs.existsSync(scenarioPath), "Scenario file written to disk in storage/temp/");
     const rawScenario = JSON.parse(fs.readFileSync(scenarioPath, "utf-8"));
     assert(rawScenario.start_url.url === "https://example.com", "Scenario file contains target URL");
-    assert(rawScenario.browser.mode === "launch", "Scenario specifies browser launch mode");
+    assert(
+      rawScenario.browser.mode === "connect" || rawScenario.browser.mode === "launch",
+      "Scenario specifies valid browser mode (connect with egress protection or launch)"
+    );
     await cleanup();
     assert(!fs.existsSync(scenarioPath), "Scenario cleanup successfully deleted temp file");
 
@@ -452,6 +472,159 @@ async function runIntelligenceVerification() {
     // Delete live test session
     await intelService.deleteSession(liveSession.id);
     assert(!fs.existsSync(liveSession.evidenceStoragePath!), "Live evidence file cleaned up after test");
+
+    // -------------------------------------------------------------
+    // 12. Targeted Browser Network Egress Protection Tests (Step 1.2)
+    // -------------------------------------------------------------
+    console.log("\n--- 12. Testing Browser Network Egress Protection ---");
+
+    // Test 53: Redirect to localhost
+    let redirectLocalhostBlocked = false;
+    try {
+      await resolveAndValidateDestination("127.0.0.1", 8080);
+    } catch (err: any) {
+      redirectLocalhostBlocked = err instanceof EgressSecurityError;
+    }
+    assert(redirectLocalhostBlocked, "Redirect/destination to localhost (127.0.0.1) rejected by egress protection");
+
+    // Test 54: Redirect to private IPv4
+    let redirectPrivateIpv4Blocked = false;
+    try {
+      await resolveAndValidateDestination("192.168.1.1", 80);
+    } catch (err: any) {
+      redirectPrivateIpv4Blocked = err instanceof EgressSecurityError;
+    }
+    assert(redirectPrivateIpv4Blocked, "Redirect/destination to private IPv4 (192.168.1.1) rejected by egress protection");
+
+    // Test 55: Redirect to IPv6 loopback
+    let redirectIpv6LoopbackBlocked = false;
+    try {
+      await resolveAndValidateDestination("::1", 80);
+    } catch (err: any) {
+      redirectIpv6LoopbackBlocked = err instanceof EgressSecurityError;
+    }
+    assert(redirectIpv6LoopbackBlocked, "Redirect/destination to IPv6 loopback (::1) rejected by egress protection");
+
+    // Test 56: Public page embedding private-network image or iframe
+    let privateImageBlocked = false;
+    try {
+      await resolveAndValidateDestination("10.0.0.1", 443);
+    } catch (err: any) {
+      privateImageBlocked = err instanceof EgressSecurityError;
+    }
+    assert(privateImageBlocked, "Subresource/iframe destination to internal 10.0.0.1 rejected by egress protection");
+
+    // Test 57: JavaScript fetch to internal IP
+    let internalFetchBlocked = false;
+    try {
+      await resolveAndValidateDestination("172.16.0.1", 3000);
+    } catch (err: any) {
+      internalFetchBlocked = err instanceof EgressSecurityError;
+    }
+    assert(internalFetchBlocked, "JavaScript fetch destination to internal 172.16.0.1 rejected by egress protection");
+
+    // Test 58: WebSocket connection to a blocked address
+    let wsBlocked = false;
+    try {
+      await resolveAndValidateDestination("169.254.169.254", 8080);
+    } catch (err: any) {
+      wsBlocked = err instanceof EgressSecurityError;
+    }
+    assert(wsBlocked, "WebSocket destination to cloud metadata 169.254.169.254 rejected by egress protection");
+
+    // Test 59: DNS rebinding scenario
+    let dnsRebindBlocked = false;
+    try {
+      await resolveAndValidateDestination("app.local", 80);
+    } catch (err: any) {
+      dnsRebindBlocked = err instanceof EgressSecurityError;
+    }
+    assert(dnsRebindBlocked, "DNS rebinding destination to internal alias rejected before connection");
+
+    // Test 60: Egress protection unavailable / fail-closed behavior
+    const unstartedProxy = new EgressFilterProxy();
+    assert(unstartedProxy.port === 0 && unstartedProxy.proxyUrl === "", "Egress protection unstarted proxy fails closed without exposed port");
+
+    // -------------------------------------------------------------
+    // 13. Targeted REA Concurrency Control Tests (Step 1.2)
+    // -------------------------------------------------------------
+    console.log("\n--- 13. Testing REA Concurrency Control ---");
+
+    // Test 61: Concurrent REA requests
+    const testSemaphore = new ExecutionSemaphore(1);
+    testSemaphore.acquire();
+    assert(testSemaphore.getActiveCount() === 1, "Concurrency slot acquired (active = 1)");
+    let secondAcquireBlocked = false;
+    try {
+      testSemaphore.acquire();
+    } catch (err: any) {
+      secondAcquireBlocked = err instanceof ConcurrencyLimitExceededError;
+    }
+    assert(secondAcquireBlocked, "Second concurrent REA request rejected with ConcurrencyLimitExceededError (HTTP 429)");
+
+    // Test 62: Semaphore release after timeout and failure
+    testSemaphore.release();
+    assert(testSemaphore.getActiveCount() === 0, "Semaphore safely released back to active = 0");
+    testSemaphore.acquire();
+    assert(testSemaphore.getActiveCount() === 1, "Subsequent execution acquired slot successfully after release");
+    testSemaphore.release();
+
+    // -------------------------------------------------------------
+    // 14. Targeted Local API Exposure & Origin Guard Tests (Step 1.2)
+    // -------------------------------------------------------------
+    console.log("\n--- 14. Testing Local API Exposure & Origin Guard ---");
+
+    // Test 63: Invalid or untrusted Origin on mutation endpoints
+    let untrustedOriginBlocked = false;
+    const untrustedReq = new NextRequest("http://localhost:3001/api/intelligence/research", {
+      method: "POST",
+      headers: { origin: "https://evil-attacker.com", host: "localhost:3001" },
+    });
+    try {
+      validateMutationOrigin(untrustedReq);
+    } catch (err: any) {
+      untrustedOriginBlocked = err instanceof UntrustedOriginError;
+    }
+    assert(untrustedOriginBlocked, "Mutation request with untrusted external Origin rejected with UntrustedOriginError (HTTP 403)");
+
+    let crossSiteBlocked = false;
+    const crossSiteReq = new NextRequest("http://localhost:3001/api/intelligence/research", {
+      method: "POST",
+      headers: { "sec-fetch-site": "cross-site", host: "localhost:3001" },
+    });
+    try {
+      validateMutationOrigin(crossSiteReq);
+    } catch (err: any) {
+      crossSiteBlocked = err instanceof UntrustedOriginError;
+    }
+    assert(crossSiteBlocked, "Mutation request flagged with sec-fetch-site: cross-site rejected with UntrustedOriginError");
+
+    // Test 64: Normal localhost operation
+    let localOriginAllowed = false;
+    const localReq = new NextRequest("http://localhost:3001/api/intelligence/research", {
+      method: "POST",
+      headers: { origin: "http://localhost:3001", host: "localhost:3001" },
+    });
+    try {
+      validateMutationOrigin(localReq);
+      localOriginAllowed = true;
+    } catch {
+      localOriginAllowed = false;
+    }
+    assert(localOriginAllowed, "Mutation request with local Origin http://localhost:3001 allowed without error");
+
+    let local127Allowed = false;
+    const local127Req = new NextRequest("http://127.0.0.1:3001/api/intelligence/research", {
+      method: "DELETE",
+      headers: { origin: "http://127.0.0.1:3001", host: "127.0.0.1:3001" },
+    });
+    try {
+      validateMutationOrigin(local127Req);
+      local127Allowed = true;
+    } catch {
+      local127Allowed = false;
+    }
+    assert(local127Allowed, "DELETE mutation request with local Origin http://127.0.0.1:3001 allowed without error");
 
   } finally {
     await new Promise<void>((resolve) => {

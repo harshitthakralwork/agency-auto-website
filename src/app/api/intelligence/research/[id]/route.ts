@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { websiteIntelligence } from "@/modules/intelligence";
+import { websiteIntelligence, validateMutationOrigin } from "@/modules/intelligence";
 
 export async function GET(
   _req: NextRequest,
@@ -29,10 +29,13 @@ export async function GET(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Enforce loopback Origin/Host validation for mutation endpoints (anti-CSRF)
+    validateMutationOrigin(req);
+
     const { id } = await params;
     const deleted = await websiteIntelligence.deleteSession(id);
 
@@ -48,9 +51,11 @@ export async function DELETE(
       message: `Research session "${id}" and associated evidence deleted.`,
     });
   } catch (err: any) {
+    const statusCode = err.code === "UNTRUSTED_ORIGIN" ? 403 : 500;
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to delete research session" },
-      { status: 500 }
+      { success: false, error: err.message || "Failed to delete research session", code: err.code || "INTERNAL_ERROR" },
+      { status: statusCode }
     );
   }
 }
+

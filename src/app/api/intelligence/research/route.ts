@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { websiteIntelligence } from "@/modules/intelligence";
+import { websiteIntelligence, validateMutationOrigin } from "@/modules/intelligence";
 import { z } from "zod";
 
 const createResearchSchema = z.object({
-  targetUrl: z.string().url("A valid HTTP or HTTPS URL is required."),
+  targetUrl: z
+    .string()
+    .max(2048, "Target URL must not exceed 2048 characters.")
+    .url("A valid HTTP or HTTPS URL is required."),
   projectId: z.string().optional(),
   industry: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
+    // Enforce loopback Origin/Host validation for mutation endpoints (anti-CSRF)
+    validateMutationOrigin(req);
+
     const body = await req.json();
     const parsed = createResearchSchema.safeParse(body);
 
@@ -32,8 +38,14 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: any) {
     const statusCode =
-      err.code === "SSRF_BLOCKED"
+      err.code === "UNTRUSTED_ORIGIN"
         ? 403
+        : err.code === "CONCURRENCY_LIMIT_EXCEEDED"
+        ? 429
+        : err.code === "SSRF_BLOCKED" || err.code === "EGRESS_BLOCKED"
+        ? 403
+        : err.code === "EGRESS_PROXY_UNAVAILABLE"
+        ? 503
         : err.code === "INVALID_URL"
         ? 400
         : err.code === "PROCESS_TIMEOUT"
@@ -70,3 +82,4 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
