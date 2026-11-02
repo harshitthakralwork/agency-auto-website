@@ -51,12 +51,19 @@ export class ThreeDObjectManager {
 
     if (config.sourceType === "asset" && config.assetUrl) {
       // Load real GLTF/GLB model
-      const loaded = await ThreeDModelLoader.load(config.assetUrl, {
-        normalize: true,
-        targetSize: 2.0,
-      });
-      root = loaded.scene;
-      disposeCallback = loaded.dispose;
+      try {
+        const loaded = await ThreeDModelLoader.load(config.assetUrl, {
+          normalize: true,
+          targetSize: 2.0,
+        });
+        root = loaded.scene;
+        disposeCallback = loaded.dispose;
+      } catch (loadErr) {
+        console.warn(`[ThreeDObjectManager] Model failed to load "${config.assetUrl}", using procedural fallback:`, loadErr);
+        const pType = config.proceduralType || "product_model";
+        root = Procedural3DArchetypes.create(pType);
+        disposeCallback = () => ThreeDDisposal.disposeObject(root);
+      }
     } else {
       // Procedural archetype
       const pType = config.proceduralType || "product_model";

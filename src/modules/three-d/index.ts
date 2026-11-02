@@ -25,6 +25,9 @@ export * from "./scene";
 // Animation & Timeline Engine
 export * from "./animation";
 
+// Production 3D Runtime
+export * from "./runtime";
+
 // Performance
 export * from "./performance/capabilities";
 

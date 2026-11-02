@@ -35,6 +35,9 @@ import {
   HorizontalScrollGallery,
   ScrollTextSequence,
 } from "@/components/cinematic";
+import { Production3DCanvas, Production3DManifest } from "@/modules/three-d/runtime";
+import { createDefaultThreeDSceneConfig } from "@/modules/three-d/scene/defaults";
+import { createDefaultThreeDAnimationConfig } from "@/modules/three-d/animation/defaults";
 
 interface LivePreviewProps {
   project: {
@@ -96,12 +99,6 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
   const [sliderPosition, setSliderPosition] = useState(50);
   const sliderRef = useRef<HTMLDivElement>(null);
 
-  // 3D Canvas Mockup state for Immersive 3D level
-  const [rotationX, setRotationX] = useState(15);
-  const [rotationY, setRotationY] = useState(35);
-  const [isWireframe, setIsWireframe] = useState(design.threeD.wireframeMode);
-  const [activeLighting, setActiveLighting] = useState(design.threeD.lightingEnvironment);
-
   // Handle before/after drag
   const handleSliderMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     if (!sliderRef.current) return;
@@ -158,6 +155,46 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
           category: categoryPack.title,
           description: p.description,
         }));
+
+  // Production 3D Runtime Manifest for Immersive 3D level
+  let production3DManifest: Production3DManifest | null = null;
+  if (design.experienceLevel === "IMMERSIVE_3D") {
+    let parsedPrefs: any = {};
+    if (project.designConfig?.threeDPreferences) {
+      try {
+        parsedPrefs = JSON.parse(project.designConfig.threeDPreferences);
+      } catch {}
+    }
+    const sceneConfig = parsedPrefs.sceneConfig || createDefaultThreeDSceneConfig();
+    const primaryId = sceneConfig.objects?.[0]?.id || "obj_primary_showcase";
+    const animationConfig = parsedPrefs.animationConfig || createDefaultThreeDAnimationConfig(primaryId);
+
+    const assetMap: Record<string, string> = {};
+    if (project.assets) {
+      for (const a of project.assets) {
+        if (a.assignedSlot) assetMap[a.assignedSlot] = a.fileUrl;
+        assetMap[a.id] = a.fileUrl;
+      }
+    }
+
+    production3DManifest = {
+      version: "1.0",
+      projectId: project.id,
+      projectName: project.name,
+      sceneConfig,
+      animationConfig,
+      assetMap,
+      fallbackMode: "procedural",
+    };
+  }
+
+  const immersive3DChapters = categoryPack.keyFeatures.slice(0, 3).map((feat, i) => ({
+    id: `chapter-${i}`,
+    title: feat,
+    subtitle: `Chapter 0${i + 1} // Spatial Experience`,
+    description: `Explore the spatial dimensions and material finishes crafted specifically for ${project.name}.`,
+    align: (i === 0 ? "left" : i === 1 ? "right" : "center") as "left" | "right" | "center",
+  }));
 
   // Viewport container width constraints
   const viewportWidths = {
@@ -314,108 +351,13 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
               </div>
             </header>
 
-            {/* LEVEL 3: INTERACTIVE 3D EXPERIENCE SPOTLIGHT */}
-            {design.experienceLevel === "IMMERSIVE_3D" && (
-              <section
-                className="py-12 px-6 md:px-12 border-b relative overflow-hidden"
-                style={{
-                  backgroundColor: "var(--theme-surface)",
-                  borderColor: "rgba(148, 163, 184, 0.2)",
-                }}
-              >
-                <div
-                  className="mx-auto flex flex-col lg:flex-row items-center gap-8 justify-between"
-                  style={{ maxWidth: design.layout.containerWidth }}
-                >
-                  <div className="space-y-4 max-w-xl">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-bold bg-violet-950/80 text-violet-300 border border-violet-800">
-                      <Box className="h-3.5 w-3.5 text-violet-400" />
-                      <span>LEVEL 3 SPATIAL 3D ENGINE HOOK [PHASE 3 ARCHITECTURE]</span>
-                    </div>
-
-                    <h2
-                      className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight"
-                      style={{ fontFamily: "var(--theme-heading-font)" }}
-                    >
-                      Interactive Spatial {categoryPack.title} Experience
-                    </h2>
-
-                    <p className="text-sm md:text-base leading-relaxed" style={{ color: "var(--theme-muted)" }}>
-                      Interactive geometric viewport mockup. Registers 3D archetype ({design.threeD.objectType.replace(/_/g, " ")}) and lighting ({activeLighting}). Actual Three.js / React Three Fiber asset rendering and GSAP scroll camera orbits are scheduled for Phase 3.
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-3 pt-2">
-                      <button
-                        onClick={() => setIsWireframe(!isWireframe)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-all cursor-pointer ${
-                          isWireframe
-                            ? "bg-violet-600 text-white border-violet-500"
-                            : "bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
-                        }`}
-                      >
-                        Wireframe: {isWireframe ? "ON" : "OFF"}
-                      </button>
-
-                      <div className="flex items-center gap-2 text-xs font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-                        <Sun className="h-3.5 w-3.5 text-amber-400" />
-                        <span className="capitalize">{activeLighting} Light</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 3D Interactive Canvas Mockup */}
-                  <div
-                    onMouseMove={(e) => {
-                      if (e.buttons === 1) {
-                        setRotationY((prev) => prev + e.movementX * 0.8);
-                        setRotationX((prev) => Math.max(-60, Math.min(60, prev - e.movementY * 0.8)));
-                      }
-                    }}
-                    className="w-full max-w-md h-80 rounded-2xl border flex flex-col items-center justify-center p-6 relative cursor-grab active:cursor-grabbing select-none shadow-2xl"
-                    style={{
-                      backgroundColor: "var(--theme-bg)",
-                      borderColor: "var(--theme-primary)",
-                      borderRadius: "var(--theme-radius)",
-                      perspective: "800px",
-                    }}
-                  >
-                    {/* Simulated 3D Mesh Geometry */}
-                    <div
-                      className="transition-transform duration-75 relative flex items-center justify-center"
-                      style={{
-                        transform: `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`,
-                        transformStyle: "preserve-3d",
-                      }}
-                    >
-                      {/* 3D Polyhedron / Diamond prism representation */}
-                      <div
-                        className={`h-40 w-40 rounded-2xl flex flex-col items-center justify-center text-center p-4 border-2 shadow-2xl ${
-                          isWireframe ? "bg-transparent border-dashed" : "backdrop-blur-md"
-                        }`}
-                        style={{
-                          borderColor: "var(--theme-primary)",
-                          backgroundColor: isWireframe
-                            ? "transparent"
-                            : "rgba(99, 102, 241, 0.15)",
-                          boxShadow: `0 20px 50px rgba(0,0,0,0.5)`,
-                        }}
-                      >
-                        <Box className="h-12 w-12 text-violet-400 animate-pulse mb-2" />
-                        <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                          {design.threeD.objectType.replace("_", " ")}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-400 mt-1">
-                          GLTF/GLB WebGL Mesh
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-[10px] font-mono text-slate-400">
-                      <span>Drag to Orbit: X: {Math.round(rotationX)}° | Y: {Math.round(rotationY)}°</span>
-                      <span className="text-violet-400">R3F / Three.js Slot</span>
-                    </div>
-                  </div>
-                </div>
+            {/* LEVEL 3: PRODUCTION 3D EXPERIENCE SPOTLIGHT */}
+            {design.experienceLevel === "IMMERSIVE_3D" && production3DManifest && (
+              <section className="relative w-full border-b border-slate-800/80">
+                <Production3DCanvas
+                  manifest={production3DManifest}
+                  chapters={immersive3DChapters}
+                />
               </section>
             )}
 

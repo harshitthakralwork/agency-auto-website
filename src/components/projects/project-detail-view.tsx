@@ -23,6 +23,7 @@ import {
   Layout,
   Video,
   Film,
+  Download,
   Image as ImageIcon,
   Upload,
 } from "lucide-react";
@@ -133,6 +134,30 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
       console.error(err);
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
+
+  const handleExportWebsite = async () => {
+    setIsExporting(true);
+    setExportMessage(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to export standalone website");
+      }
+      setExportMessage(`Site exported successfully to ${json.data.exportPath}`);
+      setTimeout(() => setExportMessage(null), 6000);
+    } catch (err: any) {
+      alert(err.message || "Export error");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -257,6 +282,18 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
             </Button>
           </Link>
 
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportWebsite}
+            disabled={isExporting}
+            className="gap-1.5 text-emerald-300 border-emerald-800/80 bg-emerald-950/40 hover:bg-emerald-900/60"
+            data-testid="export-website-btn"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>{isExporting ? "Exporting..." : "Export Site"}</span>
+          </Button>
+
           <Link href={`/projects/${project.id}/preview`} target="_blank">
             <Button size="sm" className="gap-1.5 shadow-md shadow-indigo-600/20">
               <Eye className="h-3.5 w-3.5" />
@@ -275,6 +312,19 @@ export function ProjectDetailView({ project }: ProjectDetailProps) {
           </Button>
         </div>
       </div>
+
+      {/* Export Success Notification Banner */}
+      {exportMessage && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-800 bg-emerald-950/60 p-4 text-xs text-emerald-300">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
+            <span className="font-mono">{exportMessage}</span>
+          </div>
+          <button onClick={() => setExportMessage(null)} className="text-emerald-400 hover:text-white">
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Experience Tier Architecture Card */}
       <Card className="border-indigo-900/60 bg-gradient-to-r from-indigo-950/40 via-slate-950 to-slate-900/40 p-5">
