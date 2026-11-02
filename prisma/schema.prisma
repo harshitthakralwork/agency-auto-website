@@ -1,0 +1,68 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Project {
+  id              String               @id @default(cuid())
+  name            String
+  slug            String               @unique
+  category        String
+  location        String?
+  description     String?
+  services        String               @default("")
+  targetAudience  String?
+  status          String               @default("DRAFT")
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  designConfig    ProjectDesignConfig?
+
+  @@index([category])
+  @@index([status])
+}
+
+model ProjectDesignConfig {
+  id                  String   @id @default(cuid())
+  projectId           String   @unique
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Style Preset
+  preset              String   @default("cinematic")
+
+  // Color Tokens
+  primaryColor        String   @default("#0f172a")
+  secondaryColor      String   @default("#3b82f6")
+  accentColor         String   @default("#f59e0b")
+  backgroundColor     String   @default("#ffffff")
+  surfaceColor        String   @default("#f8fafc")
+  textColor           String   @default("#0f172a")
+  mutedTextColor      String   @default("#64748b")
+
+  // Typography Tokens
+  headingFont         String   @default("Inter")
+  bodyFont            String   @default("Inter")
+  baseFontSize        String   @default("16px")
+
+  // Layout Preferences
+  layoutStyle         String   @default("modern-contained")
+  borderRadius        String   @default("0.5rem")
+  containerWidth      String   @default("1280px")
+
+  // Animation Preferences
+  animationIntensity  String   @default("subtle")
+  enableCanvasFx      Boolean  @default(false)
+
+  // Section Configurations (stored as JSON array: [{ id, name, enabled, order, customTitle }])
+  sectionsConfigJson  String   @default("[]")
+
+  // Responsive Preferences (stored as JSON)
+  responsiveSettings  String   @default("{}")
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
