@@ -110,3 +110,4 @@ The 3D Asset Management & GLTF Model Loading engine is covered by automated test
 
 - `tests/verify-three-d-assets.ts`: 43 automated unit and integration tests verifying binary headers, glTF security traversal prevention, metadata extraction, model normalization, in-memory GLTF parsing, and SQLite storage persistence.
 - `tests/browser-three-d.ts`: 15 Playwright Chromium browser tests verifying end-to-end Media Studio filtering, modal opening, WebGL `<canvas>` mounting, OrbitControls mouse dragging, HUD toggles, and zero uncaught exceptions.
+

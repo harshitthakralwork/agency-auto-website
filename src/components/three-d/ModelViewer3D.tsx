@@ -427,3 +427,4 @@ export function ModelViewer3D({
     </div>
   );
 }
+
