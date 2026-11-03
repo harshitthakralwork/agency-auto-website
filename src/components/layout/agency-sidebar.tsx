@@ -10,12 +10,14 @@ import {
   Palette,
   Eye,
   SlidersHorizontal,
+  Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Projects Catalog", href: "/projects", icon: FolderKanban },
+  { name: "Research Studio", href: "/research", icon: Compass },
   { name: "Industry Packs (6)", href: "/categories", icon: Layers },
   { name: "Design Presets (5)", href: "/design-presets", icon: Palette },
 ];

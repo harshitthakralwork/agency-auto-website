@@ -185,6 +185,9 @@ model ResearchSession {
   // Explicit Evidence Limitations (preserved from REA envelope)
   limitationsJson       String    @default("[]")
 
+  // Selected Findings for Blueprint Planning (persisted manual operator curation)
+  selectedFindingsJson  String    @default("[]")
+
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

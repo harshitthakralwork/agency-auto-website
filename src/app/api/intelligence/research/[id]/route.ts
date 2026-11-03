@@ -28,6 +28,42 @@ export async function GET(
   }
 }
 
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    // Enforce loopback Origin/Host validation for mutation endpoints (anti-CSRF)
+    validateMutationOrigin(req);
+
+    const { id } = await params;
+    const body = await req.json();
+
+    if (!Array.isArray(body.selectedFindings)) {
+      return NextResponse.json(
+        { success: false, error: "selectedFindings must be an array of strings" },
+        { status: 400 }
+      );
+    }
+
+    const updated = await websiteIntelligence.updateSelectedFindings(
+      id,
+      body.selectedFindings
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: updated,
+    });
+  } catch (err: any) {
+    const statusCode = err.code === "UNTRUSTED_ORIGIN" ? 403 : 500;
+    return NextResponse.json(
+      { success: false, error: err.message || "Failed to update findings", code: err.code || "INTERNAL_ERROR" },
+      { status: statusCode }
+    );
+  }
+}
+
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

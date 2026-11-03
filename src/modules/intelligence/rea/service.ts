@@ -237,7 +237,20 @@ export class WebsiteIntelligenceService {
       observedFacts: JSON.parse(session.observedFactsJson || "{}"),
       heuristicDetections: JSON.parse(session.heuristicDetectionsJson || "[]"),
       limitations: JSON.parse(session.limitationsJson || "[]"),
+      selectedFindings: JSON.parse((session as any).selectedFindingsJson || "[]"),
     };
+  }
+
+  /**
+   * Updates manually selected findings on a research session.
+   */
+  async updateSelectedFindings(id: string, findings: string[]): Promise<any> {
+    return db.researchSession.update({
+      where: { id },
+      data: {
+        selectedFindingsJson: JSON.stringify(findings),
+      },
+    });
   }
 
   /**
