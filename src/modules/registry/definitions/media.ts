@@ -1,0 +1,162 @@
+import { ComponentDefinition } from "../types";
+
+export const mediaDefinitions: ComponentDefinition[] = [
+  {
+    id: "media-gallery-grid",
+    name: "Curated Image & Facility Gallery Grid",
+    family: "MEDIA",
+    sectionType: "gallery",
+    description: "Responsive media grid with interactive category filter chips and lightbox modal preview.",
+    supportedExperienceLevels: ["STANDARD", "CINEMATIC", "IMMERSIVE_3D"],
+    requiredProps: ["title", "categories", "images"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Gallery heading", required: true, defaultValue: "Inside Our State-of-the-Art Facility" },
+      { name: "subtitle", type: "string", label: "Subtitle", description: "Subtitle description", required: false, defaultValue: "Take a visual tour through our meticulously designed suites, laboratories, and amenities." },
+      { name: "categories", type: "array", label: "Filter Categories", description: "Tabs for filtering images", required: true, defaultValue: ["All", "Treatment Suites", "Diagnostic Labs", "Private Lounges"] },
+      { name: "images", type: "array", label: "Images", description: "List of gallery images", required: true, defaultValue: [
+        { id: "img-1", title: "Executive Consultation Suite", category: "Treatment Suites", url: "/images/placeholders/gallery-1.jpg" },
+        { id: "img-2", title: "Advanced Imaging & Diagnostics", category: "Diagnostic Labs", url: "/images/placeholders/gallery-2.jpg" },
+        { id: "img-3", title: "VIP Recovery & Wellness Lounge", category: "Private Lounges", url: "/images/placeholders/gallery-3.jpg" },
+        { id: "img-4", title: "Sterile Procedure Suite", category: "Treatment Suites", url: "/images/placeholders/gallery-4.jpg" },
+      ]},
+    ],
+    defaultProps: {
+      title: "Inside Our State-of-the-Art Facility",
+      subtitle: "Take a visual tour through our meticulously designed suites, laboratories, and amenities.",
+      categories: ["All", "Treatment Suites", "Diagnostic Labs", "Private Lounges"],
+      images: [
+        { id: "img-1", title: "Executive Consultation Suite", category: "Treatment Suites", url: "/images/placeholders/gallery-1.jpg" },
+        { id: "img-2", title: "Advanced Imaging & Diagnostics", category: "Diagnostic Labs", url: "/images/placeholders/gallery-2.jpg" },
+        { id: "img-3", title: "VIP Recovery & Wellness Lounge", category: "Private Lounges", url: "/images/placeholders/gallery-3.jpg" },
+        { id: "img-4", title: "Sterile Procedure Suite", category: "Treatment Suites", url: "/images/placeholders/gallery-4.jpg" },
+      ],
+    },
+    variants: [
+      { id: "gallery-filtered-grid", name: "Filterable 4-Column Grid", description: "Tab-filtered grid with hover zoom and caption reveal" },
+      { id: "gallery-carousel-strip", name: "Horizontal Gallery Scroll", description: "Smooth horizontal snap carousel of high-res images" },
+    ],
+    tags: ["media", "gallery", "images", "facility", "photos"],
+  },
+  {
+    id: "media-masonry-gallery",
+    name: "Architectural & Portfolio Masonry Gallery",
+    family: "MEDIA",
+    sectionType: "masonry-gallery",
+    description: "Dynamic staggered height masonry layout highlighting interior spaces, craft, or culinary creations.",
+    supportedExperienceLevels: ["STANDARD", "CINEMATIC"],
+    requiredProps: ["title", "items"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Heading", required: true, defaultValue: "Visual Highlights & Portfolio" },
+      { name: "items", type: "array", label: "Gallery Items", description: "Masonry items with varying heights", required: true, defaultValue: [
+        { id: "m1", title: "Architectural Exterior", heightClass: "h-96", url: "/images/placeholders/masonry-1.jpg" },
+        { id: "m2", title: "Private Guest Suite", heightClass: "h-64", url: "/images/placeholders/masonry-2.jpg" },
+        { id: "m3", title: "Artisanal Table Setting", heightClass: "h-80", url: "/images/placeholders/masonry-3.jpg" },
+        { id: "m4", title: "Clinical Treatment Bay", heightClass: "h-96", url: "/images/placeholders/masonry-4.jpg" },
+      ]},
+    ],
+    defaultProps: {
+      title: "Visual Highlights & Portfolio",
+      items: [
+        { id: "m1", title: "Architectural Exterior", heightClass: "h-96", url: "/images/placeholders/masonry-1.jpg" },
+        { id: "m2", title: "Private Guest Suite", heightClass: "h-64", url: "/images/placeholders/masonry-2.jpg" },
+        { id: "m3", title: "Artisanal Table Setting", heightClass: "h-80", url: "/images/placeholders/masonry-3.jpg" },
+        { id: "m4", title: "Clinical Treatment Bay", heightClass: "h-96", url: "/images/placeholders/masonry-4.jpg" },
+      ],
+    },
+    variants: [
+      { id: "masonry-staggered-columns", name: "Staggered 3-Column Masonry", description: "Pinterest-style fluid staggered masonry" },
+    ],
+    tags: ["media", "masonry", "portfolio", "photos"],
+  },
+  {
+    id: "media-video-showcase",
+    name: "High-Definition Video Showcase & Tour",
+    family: "MEDIA",
+    sectionType: "video-showcase",
+    description: "Cinematic video player card with poster backdrop, play trigger modal, duration badge, and key chapters.",
+    supportedExperienceLevels: ["CINEMATIC", "STANDARD"],
+    requiredProps: ["title", "videoUrl", "posterUrl", "duration"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Heading", required: true, defaultValue: "A Behind-the-Scenes Video Tour" },
+      { name: "videoUrl", type: "string", label: "Video URL", description: "Source MP4/WebM URL", required: true, defaultValue: "/videos/facility-tour.mp4" },
+      { name: "posterUrl", type: "image", label: "Poster Frame", description: "High-res poster image", required: true, defaultValue: "/images/placeholders/video-tour-poster.jpg" },
+      { name: "duration", type: "string", label: "Duration", description: "Video length string", required: true, defaultValue: "2:45 Min" },
+      { name: "caption", type: "string", label: "Caption", description: "Descriptive caption", required: false, defaultValue: "Join our Chief Practitioner on an intimate walk-through of our bespoke suites." },
+    ],
+    defaultProps: {
+      title: "A Behind-the-Scenes Video Tour",
+      videoUrl: "/videos/facility-tour.mp4",
+      posterUrl: "/images/placeholders/video-tour-poster.jpg",
+      duration: "2:45 Min",
+      caption: "Join our Chief Practitioner on an intimate walk-through of our bespoke suites.",
+    },
+    variants: [
+      { id: "video-theater-card", name: "Theater Mode Card", description: "Contained 16:9 card with play pulse button and chapter cues" },
+    ],
+    tags: ["media", "video", "tour", "cinematic"],
+  },
+  {
+    id: "media-before-after-slider",
+    name: "Interactive Before / After Transformation Slider",
+    family: "MEDIA",
+    sectionType: "before-after",
+    description: "Interactive draggable divider revealing before and after results with category adaptation.",
+    supportedExperienceLevels: ["STANDARD", "CINEMATIC", "IMMERSIVE_3D"],
+    requiredProps: ["title", "beforeImage", "afterImage", "beforeLabel", "afterLabel"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Heading", required: true, defaultValue: "Demonstrated Clinical Transformation" },
+      { name: "subtitle", type: "string", label: "Subtitle", description: "Subtitle description", required: false, defaultValue: "Drag the center divider to inspect genuine before and after results." },
+      { name: "beforeImage", type: "image", label: "Before Image", description: "Initial state photo", required: true, defaultValue: "/images/placeholders/before.jpg" },
+      { name: "afterImage", type: "image", label: "After Image", description: "Outcome state photo", required: true, defaultValue: "/images/placeholders/after.jpg" },
+      { name: "beforeLabel", type: "string", label: "Before Label", description: "Left badge label", required: true, defaultValue: "Initial Consultation" },
+      { name: "afterLabel", type: "string", label: "After Label", description: "Right badge label", required: true, defaultValue: "8 Weeks Post-Protocol" },
+      { name: "metricNote", type: "string", label: "Outcome Note", description: "Clinical/aesthetic metric footnote", required: false, defaultValue: "Unretouched photography taken under standardized clinical lighting." },
+    ],
+    defaultProps: {
+      title: "Demonstrated Clinical Transformation",
+      subtitle: "Drag the center divider to inspect genuine before and after results.",
+      beforeImage: "/images/placeholders/before.jpg",
+      afterImage: "/images/placeholders/after.jpg",
+      beforeLabel: "Initial Consultation",
+      afterLabel: "8 Weeks Post-Protocol",
+      metricNote: "Unretouched photography taken under standardized clinical lighting.",
+    },
+    variants: [
+      { id: "slider-split-drag", name: "Draggable Split Slider", description: "Touch and mouse draggable vertical divider" },
+      { id: "slider-side-by-side", name: "Side-by-Side Comparison", description: "Static side-by-side cards with synchronized zoom" },
+    ],
+    tags: ["media", "before-after", "comparison", "slider", "results"],
+  },
+  {
+    id: "media-video-storytelling",
+    name: "Pinned Split Video & Narration Story",
+    family: "MEDIA",
+    sectionType: "video-storytelling",
+    description: "Scroll-linked pinned split section where narrative chapters sync alongside a looping ambient video reel.",
+    supportedExperienceLevels: ["CINEMATIC"],
+    requiredProps: ["title", "chapters", "videoUrl"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Heading", required: true, defaultValue: "The Story Behind Every Detail" },
+      { name: "videoUrl", type: "string", label: "Video URL", description: "Video background/side asset", required: true, defaultValue: "/videos/storytelling.mp4" },
+      { name: "chapters", type: "array", label: "Story Chapters", description: "Array of chapters synced to scroll", required: true, defaultValue: [
+        { title: "Origins & Heritage", text: "Founded over a decade ago on the simple principle that authentic craft cannot be rushed." },
+        { title: "Meticulous Selection", text: "Every material, supplier, and team member is selected under uncompromising quality standards." },
+        { title: "The Standard of Care", text: "Our protocols deliver measurable peace of mind and lasting outcomes." },
+      ]},
+    ],
+    defaultProps: {
+      title: "The Story Behind Every Detail",
+      videoUrl: "/videos/storytelling.mp4",
+      chapters: [
+        { title: "Origins & Heritage", text: "Founded over a decade ago on the simple principle that authentic craft cannot be rushed." },
+        { title: "Meticulous Selection", text: "Every material, supplier, and team member is selected under uncompromising quality standards." },
+        { title: "The Standard of Care", text: "Our protocols deliver measurable peace of mind and lasting outcomes." },
+      ],
+    },
+    variants: [
+      { id: "split-pinned-video", name: "Pinned Left Video, Scrolling Right Text", description: "Left column stays locked while text scrolls" },
+    ],
+    tags: ["media", "storytelling", "video", "cinematic", "gsap"],
+  },
+];
+

@@ -26,6 +26,7 @@ model Project {
   videoJobs       VideoProcessingJob[]
   researchSessions ResearchSession[]
   blueprints      WebsiteBlueprint[]
+  componentLibrary ProjectComponentLibrary[]
 
   @@index([category])
   @@index([experienceLevel])
@@ -246,6 +247,46 @@ model WebsiteBlueprint {
   @@index([industry])
   @@index([version])
   @@index([slug])
+}
+
+model ComponentRegistryItem {
+  id                         String                  @id
+  name                       String
+  family                     String                  // HERO, BUSINESS, CONVERSION, SOCIAL_PROOF, MEDIA, CONTENT, ADVANCED
+  sectionType                String
+  description                String
+  supportedExperienceLevels  String                  @default("[\"STANDARD\",\"CINEMATIC\",\"IMMERSIVE_3D\"]")
+  requiredPropsJson          String                  @default("[]")
+  defaultPropsJson           String                  @default("{}")
+  variantsJson               String                  @default("[]")
+  tagsJson                   String                  @default("[]")
+  isFavorite                 Boolean                 @default(false)
+
+  projectLibraries           ProjectComponentLibrary[]
+
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+
+  @@index([family])
+  @@index([sectionType])
+  @@index([isFavorite])
+}
+
+model ProjectComponentLibrary {
+  id              String                @id @default(cuid())
+  projectId       String
+  project         Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  componentId     String
+  component       ComponentRegistryItem @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  variantId       String?
+  customPropsJson String                @default("{}")
+
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@unique([projectId, componentId])
+  @@index([projectId])
+  @@index([componentId])
 }
 
 

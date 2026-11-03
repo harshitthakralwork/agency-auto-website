@@ -1,0 +1,150 @@
+import { ComponentDefinition } from "../types";
+
+export const advancedDefinitions: ComponentDefinition[] = [
+  {
+    id: "advanced-scroll-storytelling",
+    name: "GSAP Pinned Scroll Storytelling Experience",
+    family: "ADVANCED",
+    sectionType: "scroll-storytelling",
+    description: "Multi-phase pinned storytelling section with synchronized timeline transitions, progress indicator, and narrative reveal.",
+    supportedExperienceLevels: ["CINEMATIC", "IMMERSIVE_3D"],
+    requiredProps: ["title", "phases"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Section header", required: true, defaultValue: "The Anatomy of Unrivaled Care" },
+      { name: "subtitle", type: "string", label: "Subtitle", description: "Intro note", required: false, defaultValue: "Scroll downward to explore our four pillars of clinical and service distinction." },
+      { name: "phases", type: "array", label: "Story Phases", description: "Phases pinned on scroll", required: true, defaultValue: [
+        { phase: "01", heading: "Precise Diagnosis", text: "High-resolution biometrics and comprehensive evaluation uncover root causes before treatment begins.", metric: "99.2% Diagnostic Accuracy" },
+        { phase: "02", heading: "Bespoke Intervention", text: "Every therapy is calibrated to your physiological profile and personal lifestyle demands.", metric: "100% Customized Protocol" },
+        { phase: "03", heading: "Restorative Healing", text: "Accelerated cellular recovery monitored by real-time telehealth check-ins.", metric: "2x Faster Recovery" },
+        { phase: "04", heading: "Sustainable Longevity", text: "Long-term wellness routines and predictive screening ensure sustained vitality.", metric: "Long-Term Vitality" },
+      ]},
+    ],
+    defaultProps: {
+      title: "The Anatomy of Unrivaled Care",
+      subtitle: "Scroll downward to explore our four pillars of clinical and service distinction.",
+      phases: [
+        { phase: "01", heading: "Precise Diagnosis", text: "High-resolution biometrics and comprehensive evaluation uncover root causes before treatment begins.", metric: "99.2% Diagnostic Accuracy" },
+        { phase: "02", heading: "Bespoke Intervention", text: "Every therapy is calibrated to your physiological profile and personal lifestyle demands.", metric: "100% Customized Protocol" },
+        { phase: "03", heading: "Restorative Healing", text: "Accelerated cellular recovery monitored by real-time telehealth check-ins.", metric: "2x Faster Recovery" },
+        { phase: "04", heading: "Sustainable Longevity", text: "Long-term wellness routines and predictive screening ensure sustained vitality.", metric: "Long-Term Vitality" },
+      ],
+    },
+    variants: [
+      { id: "storytelling-pinned-panels", name: "Pinned Viewport Panels", description: "Locked viewport with smoothly fading cards driven by ScrollTrigger" },
+    ],
+    tags: ["advanced", "storytelling", "gsap", "scrolltrigger", "cinematic"],
+  },
+  {
+    id: "advanced-canvas-frame-sequences",
+    name: "Scrubbed Canvas Video Frame Sequence",
+    family: "ADVANCED",
+    sectionType: "canvas-frame-sequence",
+    description: "Ultra-high performance HTML5 canvas scrubbing through 60-120 high-resolution WebP frames bound to scroll.",
+    supportedExperienceLevels: ["CINEMATIC", "IMMERSIVE_3D"],
+    requiredProps: ["title", "manifestUrl", "frameCount"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Overlay title", required: true, defaultValue: "360° Volumetric Facility Inspection" },
+      { name: "subtitle", type: "string", label: "Subtitle", description: "Scroll guidance note", required: false, defaultValue: "Scroll smoothly to inspect our clinical suites in continuous ultra-HD frames." },
+      { name: "manifestUrl", type: "string", label: "Manifest URL", description: "JSON frames manifest", required: true, defaultValue: "/api/media/manifests/facility-scan.json" },
+      { name: "frameCount", type: "number", label: "Frame Count", description: "Total sequence frames", required: true, defaultValue: 60 },
+      { name: "overlayCta", type: "string", label: "Overlay CTA", description: "Interactive button atop canvas", required: false, defaultValue: "Schedule On-Site Tour" },
+    ],
+    defaultProps: {
+      title: "360° Volumetric Facility Inspection",
+      subtitle: "Scroll smoothly to inspect our clinical suites in continuous ultra-HD frames.",
+      manifestUrl: "/api/media/manifests/facility-scan.json",
+      frameCount: 60,
+      overlayCta: "Schedule On-Site Tour",
+    },
+    variants: [
+      { id: "canvas-fullscreen-pinned", name: "Full-Bleed Pinned Canvas", description: "Full-screen canvas pinned across 300vh of smooth scroll" },
+    ],
+    tags: ["advanced", "canvas", "frames", "scrub", "cinematic", "video"],
+  },
+  {
+    id: "advanced-interactive-3d-model",
+    name: "Interactive 3D Model Explorer with Orbit Controls",
+    family: "ADVANCED",
+    sectionType: "3d-model-viewer",
+    description: "Full Three.js WebGL canvas allowing 360-degree orbital rotation, zoom, wireframe toggle, and material inspection.",
+    supportedExperienceLevels: ["IMMERSIVE_3D"],
+    requiredProps: ["title", "modelType", "lightingEnvironment"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Heading", required: true, defaultValue: "Interactive 3D Equipment & Facility Explorer" },
+      { name: "modelType", type: "string", label: "Model Type", description: "Model identifier or geometry", required: true, defaultValue: "product_model", options: ["product_model", "spatial_environment", "hero_floating_object", "interactive_particles"] },
+      { name: "lightingEnvironment", type: "string", label: "Lighting", description: "Environment lighting setup", required: true, defaultValue: "clinical_bright", options: ["studio", "sunset", "dramatic_neon", "clinical_bright", "luxury_warm"] },
+      { name: "autoRotate", type: "boolean", label: "Auto-Rotate", description: "Slow continuous rotation when idle", required: false, defaultValue: true },
+      { name: "allowWireframe", type: "boolean", label: "Allow Wireframe Toggle", description: "Permit user to view wireframe meshes", required: false, defaultValue: true },
+    ],
+    defaultProps: {
+      title: "Interactive 3D Equipment & Facility Explorer",
+      modelType: "product_model",
+      lightingEnvironment: "clinical_bright",
+      autoRotate: true,
+      allowWireframe: true,
+    },
+    variants: [
+      { id: "3d-model-card", name: "Framed 3D Inspector Card", description: "Card container with WebGL canvas and UI controls toolbar" },
+    ],
+    tags: ["advanced", "3d", "threejs", "webgl", "interactive", "model"],
+  },
+  {
+    id: "advanced-3d-product-showcase",
+    name: "3D Product Showcase with Hotspot Annotations",
+    family: "ADVANCED",
+    sectionType: "3d-product-showcase",
+    description: "Three.js model with interactive 3D pins/hotspots that click to reveal technical specifications and details.",
+    supportedExperienceLevels: ["IMMERSIVE_3D"],
+    requiredProps: ["title", "modelType", "hotspots"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Heading", required: true, defaultValue: "Precision Engineering & Specifications" },
+      { name: "modelType", type: "string", label: "3D Model", description: "3D asset key", required: true, defaultValue: "product_model" },
+      { name: "hotspots", type: "array", label: "Annotated Hotspots", description: "List of 3D hotspot pins", required: true, defaultValue: [
+        { id: "h1", title: "Biometric Sensor Array", description: "Medical-grade sensor providing millisecond diagnostic feedback.", x: 0.5, y: 0.2, z: 0.8 },
+        { id: "h2", title: "Ergonomic Articulated Joint", description: "Surgical titanium alloy construction rated for 100,000 continuous cycles.", x: -0.4, y: 0.6, z: -0.3 },
+        { id: "h3", title: "Sterile Coating Layer", description: "Antimicrobial nano-ceramic finish compliant with FDA clinical standards.", x: 0.1, y: -0.5, z: 0.5 },
+      ]},
+    ],
+    defaultProps: {
+      title: "Precision Engineering & Specifications",
+      modelType: "product_model",
+      hotspots: [
+        { id: "h1", title: "Biometric Sensor Array", description: "Medical-grade sensor providing millisecond diagnostic feedback.", x: 0.5, y: 0.2, z: 0.8 },
+        { id: "h2", title: "Ergonomic Articulated Joint", description: "Surgical titanium alloy construction rated for 100,000 continuous cycles.", x: -0.4, y: 0.6, z: -0.3 },
+        { id: "h3", title: "Sterile Coating Layer", description: "Antimicrobial nano-ceramic finish compliant with FDA clinical standards.", x: 0.1, y: -0.5, z: 0.5 },
+      ],
+    },
+    variants: [
+      { id: "showcase-hotspots-split", name: "Split 3D Canvas with Active Hotspot Drawer", description: "3D model on left, active hotspot details card on right" },
+    ],
+    tags: ["advanced", "3d", "hotspots", "threejs", "showcase", "specs"],
+  },
+  {
+    id: "advanced-spatial-3d-scene",
+    name: "Spatial 3D Environmental Scene",
+    family: "ADVANCED",
+    sectionType: "spatial-3d-scene",
+    description: "Deep spatial 3D architectural room environment with customizable shaders, particles, and camera animation.",
+    supportedExperienceLevels: ["IMMERSIVE_3D"],
+    requiredProps: ["title", "environmentType", "primaryCta"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Foreground text", required: true, defaultValue: "Enter the Spatial Environment" },
+      { name: "subtitle", type: "string", label: "Subtitle", description: "Description", required: false, defaultValue: "Navigate our digital architectural twin rendered entirely inside your browser." },
+      { name: "environmentType", type: "string", label: "Environment Preset", description: "Spatial architecture type", required: true, defaultValue: "spatial_environment", options: ["spatial_environment", "interactive_particles"] },
+      { name: "lightingEnvironment", type: "string", label: "Lighting", description: "Ambient lighting preset", required: false, defaultValue: "luxury_warm", options: ["studio", "sunset", "dramatic_neon", "clinical_bright", "luxury_warm"] },
+      { name: "primaryCta", type: "string", label: "CTA Button", description: "Button text", required: true, defaultValue: "Explore Spatial Twin" },
+    ],
+    defaultProps: {
+      title: "Enter the Spatial Environment",
+      subtitle: "Navigate our digital architectural twin rendered entirely inside your browser.",
+      environmentType: "spatial_environment",
+      lightingEnvironment: "luxury_warm",
+      primaryCta: "Explore Spatial Twin",
+    },
+    variants: [
+      { id: "spatial-interactive-room", name: "Interactive Architectural Room", description: "Walkthrough-style camera panning with lighting shifts" },
+    ],
+    tags: ["advanced", "3d", "spatial", "environment", "threejs", "webgl"],
+  },
+];
+

@@ -1,0 +1,221 @@
+import { ComponentDefinition } from "../types";
+
+export const contentDefinitions: ComponentDefinition[] = [
+  {
+    id: "content-faq-accordion",
+    name: "Interactive FAQ Accordion",
+    family: "CONTENT",
+    sectionType: "faq",
+    description: "Accessible collapsible accordion answering common prospective patient or client questions.",
+    supportedExperienceLevels: ["STANDARD", "CINEMATIC", "IMMERSIVE_3D"],
+    requiredProps: ["title", "faqs"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Section heading", required: true, defaultValue: "Frequently Asked Questions" },
+      { name: "subtitle", type: "string", label: "Subtitle", description: "Overview note", required: false, defaultValue: "Everything you need to know about our services, safety standards, and booking." },
+      { name: "faqs", type: "array", label: "Questions & Answers", description: "List of Q&A items", required: true, defaultValue: [
+        { id: "f1", question: "What should I expect during my initial consultation?", answer: "Your initial consultation begins with a private 45-minute evaluation where our lead specialist reviews your history, discusses your objectives, and outlines personalized recommendations." },
+        { id: "f2", question: "Are your procedures covered by insurance or private plans?", answer: "We accept most major commercial insurance networks for clinical services and provide detailed itemized superbills for reimbursement if we are out-of-network." },
+        { id: "f3", question: "How far in advance should I reserve an appointment?", answer: "Due to high demand and dedicated one-on-one attention, we recommend booking 1-2 weeks in advance. Emergency and priority slots are reserved daily." },
+        { id: "f4", question: "What is your cancellation and rescheduling policy?", answer: "We request at least 24 hours notice for rescheduling to accommodate waiting patients. Cancellations with less than 24 hours notice may incur a modest fee." },
+      ]},
+    ],
+    defaultProps: {
+      title: "Frequently Asked Questions",
+      subtitle: "Everything you need to know about our services, safety standards, and booking.",
+      faqs: [
+        { id: "f1", question: "What should I expect during my initial consultation?", answer: "Your initial consultation begins with a private 45-minute evaluation where our lead specialist reviews your history, discusses your objectives, and outlines personalized recommendations." },
+        { id: "f2", question: "Are your procedures covered by insurance or private plans?", answer: "We accept most major commercial insurance networks for clinical services and provide detailed itemized superbills for reimbursement if we are out-of-network." },
+        { id: "f3", question: "How far in advance should I reserve an appointment?", answer: "Due to high demand and dedicated one-on-one attention, we recommend booking 1-2 weeks in advance. Emergency and priority slots are reserved daily." },
+        { id: "f4", question: "What is your cancellation and rescheduling policy?", answer: "We request at least 24 hours notice for rescheduling to accommodate waiting patients. Cancellations with less than 24 hours notice may incur a modest fee." },
+      ],
+    },
+    variants: [
+      { id: "faq-single-open", name: "Clean Accordion", description: "Minimal single-open accordion with subtle border dividers" },
+      { id: "faq-two-column", name: "Two-Column Grid", description: "Two columns of accordion cards for extensive question catalogs" },
+    ],
+    tags: ["content", "faq", "accordion", "questions", "answers"],
+  },
+  {
+    id: "content-blog-preview",
+    name: "Editorial Articles & Educational Insights",
+    family: "CONTENT",
+    sectionType: "blog-preview",
+    description: "Curated grid of authoritative thought leadership articles, research digests, and care guides.",
+    supportedExperienceLevels: ["STANDARD", "CINEMATIC"],
+    requiredProps: ["title", "articles"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Section heading", required: true, defaultValue: "Clinical Insights & Evidence-Based Articles" },
+      { name: "articles", type: "array", label: "Articles", description: "Array of article cards", required: true, defaultValue: [
+        { id: "b1", title: "Understanding Modern Preventative Care Protocols", excerpt: "How early biometric screening dramatically alters long-term wellness trajectories.", readTime: "5 min read", date: "Oct 24, 2026", category: "Preventative", image: "/images/placeholders/blog-1.jpg" },
+        { id: "b2", title: "The Science of Restorative Recovery & Nutrition", excerpt: "Evidence-backed dietary and therapeutic principles for accelerated tissue healing.", readTime: "7 min read", date: "Oct 18, 2026", category: "Recovery", image: "/images/placeholders/blog-2.jpg" },
+        { id: "b3", title: "Navigating Treatment Options: What to Ask Your Specialist", excerpt: "A comprehensive checklist of questions to ensure you make informed health decisions.", readTime: "4 min read", date: "Oct 12, 2026", category: "Patient Guide", image: "/images/placeholders/blog-3.jpg" },
+      ]},
+    ],
+    defaultProps: {
+      title: "Clinical Insights & Evidence-Based Articles",
+      articles: [
+        { id: "b1", title: "Understanding Modern Preventative Care Protocols", excerpt: "How early biometric screening dramatically alters long-term wellness trajectories.", readTime: "5 min read", date: "Oct 24, 2026", category: "Preventative", image: "/images/placeholders/blog-1.jpg" },
+        { id: "b2", title: "The Science of Restorative Recovery & Nutrition", excerpt: "Evidence-backed dietary and therapeutic principles for accelerated tissue healing.", readTime: "7 min read", date: "Oct 18, 2026", category: "Recovery", image: "/images/placeholders/blog-2.jpg" },
+        { id: "b3", title: "Navigating Treatment Options: What to Ask Your Specialist", excerpt: "A comprehensive checklist of questions to ensure you make informed health decisions.", readTime: "4 min read", date: "Oct 12, 2026", category: "Patient Guide", image: "/images/placeholders/blog-3.jpg" },
+      ],
+    },
+    variants: [
+      { id: "blog-cards-3col", name: "3-Column Magazine Cards", description: "Image header with category badge, title, excerpt, and author meta" },
+    ],
+    tags: ["content", "blog", "articles", "news", "insights"],
+  },
+  {
+    id: "content-location-map",
+    name: "Location, Directions & Parking Guide",
+    family: "CONTENT",
+    sectionType: "location",
+    description: "Map preview with street address, transit directions, parking amenities, and opening status indicator.",
+    supportedExperienceLevels: ["STANDARD", "CINEMATIC"],
+    requiredProps: ["title", "address", "phone", "directionsCta"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Location title", required: true, defaultValue: "Visit Our Main Campus" },
+      { name: "address", type: "string", label: "Address", description: "Full street address", required: true, defaultValue: "742 Evergreen Plaza, Suite 400, New York, NY 10021" },
+      { name: "phone", type: "string", label: "Phone", description: "Direct telephone", required: true, defaultValue: "(212) 555-0198" },
+      { name: "parkingInfo", type: "string", label: "Parking Info", description: "Valet/garage instructions", required: false, defaultValue: "Complimentary valet parking available at main building entrance." },
+      { name: "directionsCta", type: "string", label: "Directions CTA", description: "Maps link label", required: true, defaultValue: "Get Driving Directions" },
+    ],
+    defaultProps: {
+      title: "Visit Our Main Campus",
+      address: "742 Evergreen Plaza, Suite 400, New York, NY 10021",
+      phone: "(212) 555-0198",
+      parkingInfo: "Complimentary valet parking available at main building entrance.",
+      directionsCta: "Get Driving Directions",
+    },
+    variants: [
+      { id: "location-split-map", name: "Split Info and Map", description: "Contact details and parking instructions on left, interactive map frame on right" },
+    ],
+    tags: ["content", "location", "map", "directions", "address"],
+  },
+  {
+    id: "content-opening-hours",
+    name: "Operating Schedule & Emergency Contact",
+    family: "CONTENT",
+    sectionType: "opening-hours",
+    description: "Tabular schedule of hours with live Open/Closed badge, holiday notes, and emergency hotline.",
+    supportedExperienceLevels: ["STANDARD", "CINEMATIC"],
+    requiredProps: ["title", "schedule"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Section title", required: true, defaultValue: "Hours of Operation" },
+      { name: "isOpenNow", type: "boolean", label: "Open Now Indicator", description: "Display live open status badge", required: false, defaultValue: true },
+      { name: "schedule", type: "array", label: "Schedule", description: "List of days and times", required: true, defaultValue: [
+        { days: "Monday – Thursday", hours: "7:30 AM – 7:00 PM" },
+        { days: "Friday", hours: "8:00 AM – 6:00 PM" },
+        { days: "Saturday", hours: "9:00 AM – 3:00 PM" },
+        { days: "Sunday", hours: "Closed (Emergency On-Call Available)" },
+      ]},
+      { name: "emergencyNote", type: "string", label: "Emergency Hotline", description: "Urgent care contact", required: false, defaultValue: "For urgent after-hours needs, call our 24/7 on-call coordinator at (212) 555-0199." },
+    ],
+    defaultProps: {
+      title: "Hours of Operation",
+      isOpenNow: true,
+      schedule: [
+        { days: "Monday – Thursday", hours: "7:30 AM – 7:00 PM" },
+        { days: "Friday", hours: "8:00 AM – 6:00 PM" },
+        { days: "Saturday", hours: "9:00 AM – 3:00 PM" },
+        { days: "Sunday", hours: "Closed (Emergency On-Call Available)" },
+      ],
+      emergencyNote: "For urgent after-hours needs, call our 24/7 on-call coordinator at (212) 555-0199.",
+    },
+    variants: [
+      { id: "hours-table-clean", name: "Tabular Card with Badge", description: "Bordered card with day-by-day rows and active status pill" },
+    ],
+    tags: ["content", "hours", "schedule", "open-now"],
+  },
+  {
+    id: "content-pricing-table",
+    name: "Tiered Pricing & Package Comparison",
+    family: "CONTENT",
+    sectionType: "pricing-table",
+    description: "Side-by-side pricing tiers with billing frequency toggle, highlighted recommended plan, and feature checklists.",
+    supportedExperienceLevels: ["STANDARD", "CINEMATIC"],
+    requiredProps: ["title", "tiers"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Heading", required: true, defaultValue: "Transparent, Upfront Pricing Tiers" },
+      { name: "subtitle", type: "string", label: "Subtitle", description: "Overview note", required: false, defaultValue: "No hidden facility fees or surprise charges. Select the tier that matches your goals." },
+      { name: "tiers", type: "array", label: "Pricing Tiers", description: "List of pricing cards", required: true, defaultValue: [
+        { id: "p1", name: "Essential Care", price: "$149", period: "/ visit", description: "Ideal for routine diagnostic check-ups and standard consultations.", isPopular: false, features: ["Complete 30-min evaluation", "Standard lab referral", "Care summary portal access", "Digital prescription dispatch"], cta: "Book Essential" },
+        { id: "p2", name: "Comprehensive", price: "$289", period: "/ visit", description: "Our most popular full-spectrum clinical and wellness protocol.", isPopular: true, features: ["Extended 60-min specialist review", "Comprehensive biometric screening", "Customized 90-day plan", "Direct nurse messaging access", "Priority booking window"], cta: "Book Comprehensive" },
+        { id: "p3", name: "VIP Concierge", price: "$599", period: "/ month", description: "Dedicated ongoing concierge partnership with 24/7 access.", isPopular: false, features: ["Unlimited consultations", "In-home or private suite visits", "Direct cell access to Chief Doctor", "Dedicated care coordinator", "Annual executive health scan"], cta: "Inquire VIP Concierge" },
+      ]},
+    ],
+    defaultProps: {
+      title: "Transparent, Upfront Pricing Tiers",
+      subtitle: "No hidden facility fees or surprise charges. Select the tier that matches your goals.",
+      tiers: [
+        { id: "p1", name: "Essential Care", price: "$149", period: "/ visit", description: "Ideal for routine diagnostic check-ups and standard consultations.", isPopular: false, features: ["Complete 30-min evaluation", "Standard lab referral", "Care summary portal access", "Digital prescription dispatch"], cta: "Book Essential" },
+        { id: "p2", name: "Comprehensive", price: "$289", period: "/ visit", description: "Our most popular full-spectrum clinical and wellness protocol.", isPopular: true, features: ["Extended 60-min specialist review", "Comprehensive biometric screening", "Customized 90-day plan", "Direct nurse messaging access", "Priority booking window"], cta: "Book Comprehensive" },
+        { id: "p3", name: "VIP Concierge", price: "$599", period: "/ month", description: "Dedicated ongoing concierge partnership with 24/7 access.", isPopular: false, features: ["Unlimited consultations", "In-home or private suite visits", "Direct cell access to Chief Doctor", "Dedicated care coordinator", "Annual executive health scan"], cta: "Inquire VIP Concierge" },
+      ],
+    },
+    variants: [
+      { id: "pricing-3col-cards", name: "3-Column Comparison Cards", description: "Three side-by-side cards with center card elevated and highlighted" },
+    ],
+    tags: ["content", "pricing", "plans", "packages", "subscription"],
+  },
+  {
+    id: "content-comparison-matrix",
+    name: "Detailed Capability & Specification Matrix",
+    family: "CONTENT",
+    sectionType: "comparison-matrix",
+    description: "Deep feature-by-feature matrix comparing our methodology against conventional alternatives.",
+    supportedExperienceLevels: ["STANDARD", "CINEMATIC"],
+    requiredProps: ["title", "competitorName", "features"],
+    propDefinitions: [
+      { name: "title", type: "string", label: "Title", description: "Heading", required: true, defaultValue: "How We Compare to Traditional Providers" },
+      { name: "competitorName", type: "string", label: "Competitor Label", description: "Other providers column name", required: true, defaultValue: "Conventional Practices" },
+      { name: "features", type: "array", label: "Comparison Rows", description: "Feature comparison rows", required: true, defaultValue: [
+        { feature: "Dedicated 1-on-1 Specialist Attention", us: true, them: false, note: "Minimum 45 min dedicated review" },
+        { feature: "Transparent Upfront Pricing (No Surprise Bills)", us: true, them: false, note: "Explicitly agreed before any procedure" },
+        { feature: "State-of-the-Art Biometric Diagnostic Suite", us: true, them: false, note: "Updated annually with latest equipment" },
+        { feature: "24/7 Direct Patient Messaging Portal", us: true, them: false, note: "Direct access to care coordinators" },
+        { feature: "Accredited Board Certifications Across All Staff", us: true, them: true, note: "Standard medical licensure" },
+      ]},
+    ],
+    defaultProps: {
+      title: "How We Compare to Traditional Providers",
+      competitorName: "Conventional Practices",
+      features: [
+        { feature: "Dedicated 1-on-1 Specialist Attention", us: true, them: false, note: "Minimum 45 min dedicated review" },
+        { feature: "Transparent Upfront Pricing (No Surprise Bills)", us: true, them: false, note: "Explicitly agreed before any procedure" },
+        { feature: "State-of-the-Art Biometric Diagnostic Suite", us: true, them: false, note: "Updated annually with latest equipment" },
+        { feature: "24/7 Direct Patient Messaging Portal", us: true, them: false, note: "Direct access to care coordinators" },
+        { feature: "Accredited Board Certifications Across All Staff", us: true, them: true, note: "Standard medical licensure" },
+      ],
+    },
+    variants: [
+      { id: "matrix-table", name: "Structured Matrix Table", description: "Checkmark vs X table with highlighting on our column" },
+    ],
+    tags: ["content", "comparison", "matrix", "competitive", "features"],
+  },
+  {
+    id: "content-callouts",
+    name: "Urgent Announcements & Highlight Callouts",
+    family: "CONTENT",
+    sectionType: "callout",
+    description: "Prominent notice card highlighting seasonal scheduling, safety updates, or special incentives.",
+    supportedExperienceLevels: ["STANDARD", "CINEMATIC"],
+    requiredProps: ["heading", "message", "actionLabel"],
+    propDefinitions: [
+      { name: "variantType", type: "string", label: "Callout Type", description: "Styling variant", required: false, defaultValue: "info", options: ["info", "warning", "success", "accent"] },
+      { name: "heading", type: "string", label: "Callout Heading", description: "Header", required: true, defaultValue: "Now Accepting New Patients for the 2026 Season" },
+      { name: "message", type: "string", label: "Message", description: "Body text", required: true, defaultValue: "Schedule your comprehensive onboarding assessment early to secure preferred morning and weekend time slots." },
+      { name: "actionLabel", type: "string", label: "Button Label", description: "Action CTA", required: true, defaultValue: "Check Availability" },
+    ],
+    defaultProps: {
+      variantType: "accent",
+      heading: "Now Accepting New Patients for the 2026 Season",
+      message: "Schedule your comprehensive onboarding assessment early to secure preferred morning and weekend time slots.",
+      actionLabel: "Check Availability",
+    },
+    variants: [
+      { id: "callout-banner", name: "Framed Accent Callout", description: "Framed card with glowing border and action button" },
+    ],
+    tags: ["content", "callout", "notice", "alert", "announcement"],
+  },
+];
+

@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   Compass,
   FileText,
+  Boxes,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ const navigation = [
   { name: "Projects Catalog", href: "/projects", icon: FolderKanban },
   { name: "Research Studio", href: "/research", icon: Compass },
   { name: "Design Blueprints", href: "/blueprints", icon: FileText },
+  { name: "Component Registry", href: "/registry", icon: Boxes },
   { name: "Industry Packs (6)", href: "/categories", icon: Layers },
   { name: "Design Presets (5)", href: "/design-presets", icon: Palette },
 ];
@@ -81,6 +83,15 @@ export function AgencySidebar() {
               </span>
               <span className="font-mono text-[11px] text-pink-300 bg-pink-950 px-1.5 py-0.5 rounded">
                 5 Presets
+              </span>
+            </div>
+            <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+              <span className="flex items-center gap-1.5">
+                <Boxes className="h-3.5 w-3.5 text-cyan-400" />
+                Component Registry
+              </span>
+              <span className="font-mono text-[11px] text-cyan-300 bg-cyan-950 px-1.5 py-0.5 rounded">
+                42 Ready
               </span>
             </div>
             <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
