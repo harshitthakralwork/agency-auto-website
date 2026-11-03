@@ -72,7 +72,7 @@ const BLOCKED_IPV4_CIDRS: Array<[string, number]> = [
 /**
  * Checks whether an IPv6 address falls into private, loopback, link-local, or documentation ranges.
  */
-function isPrivateOrReservedIpv6(ip: string): boolean {
+export function isPrivateOrReservedIpv6(ip: string): boolean {
   const normalized = ip.toLowerCase();
 
   // IPv4-mapped IPv6 address (::ffff:192.168.1.1 or ::ffff:c0a8:0101)

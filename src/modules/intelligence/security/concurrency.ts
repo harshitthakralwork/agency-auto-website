@@ -72,3 +72,4 @@ export class ExecutionSemaphore {
 
 // Default singleton instance: strictly 1 active REA browser execution
 export const reaExecutionSemaphore = new ExecutionSemaphore(1);
+

@@ -16,7 +16,7 @@ export interface BrowserScenarioConfig {
 /**
  * Finds an available dynamic loopback port.
  */
-function getFreeLoopbackPort(): Promise<number> {
+export function getFreeLoopbackPort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const srv = net.createServer();
     srv.listen(0, "127.0.0.1", () => {
@@ -86,7 +86,11 @@ export class REAScenarioBuilder {
       browserInstance = await chromium.launch({
         executablePath: browserPath,
         headless: true,
-        args: [`--remote-debugging-port=${cdpPort}`],
+        args: [
+          `--remote-debugging-port=${cdpPort}`,
+          `--remote-debugging-address=127.0.0.1`,
+          `--proxy-bypass-list=<-loopback>`,
+        ],
         proxy: { server: proxyUrl },
       });
 

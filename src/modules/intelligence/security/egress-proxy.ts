@@ -2,7 +2,7 @@ import http from "http";
 import net from "net";
 import dns from "dns/promises";
 import type stream from "stream";
-import { isPrivateOrReservedIpv4, SSRFSecurityError } from "./ssrf";
+import { isPrivateOrReservedIpv4, isPrivateOrReservedIpv6, SSRFSecurityError } from "./ssrf";
 
 export class EgressSecurityError extends Error {
   public readonly code = "EGRESS_BLOCKED";
@@ -20,8 +20,21 @@ export class EgressProxyUnavailableError extends Error {
   }
 }
 
+export interface EgressRequestLog {
+  timestamp: string;
+  type: "HTTP" | "CONNECT";
+  method: string;
+  target: string;
+  clientIp?: string;
+  blocked: boolean;
+  statusCode: number;
+  reason?: string;
+  destinationIp?: string;
+}
+
 export interface EgressProxyOptions {
   allowLocalhostForTesting?: boolean;
+  onRequestLog?: (log: EgressRequestLog) => void;
 }
 
 export interface ResolvedDestination {
@@ -68,14 +81,7 @@ export async function resolveAndValidateDestination(
   }
 
   if (ipFamily === 6) {
-    if (
-      (cleanHost === "::1" ||
-        cleanHost === "0:0:0:0:0:0:0:1" ||
-        cleanHost.startsWith("fe80:") ||
-        cleanHost.startsWith("fc00:") ||
-        cleanHost.startsWith("fd00:")) &&
-      !options.allowLocalhostForTesting
-    ) {
+    if (isPrivateOrReservedIpv6(cleanHost) && !options.allowLocalhostForTesting) {
       throw new EgressSecurityError(
         `Egress violation: Direct private/reserved IPv6 address "${cleanHost}" is blocked.`
       );
@@ -105,19 +111,10 @@ export async function resolveAndValidateDestination(
           `Egress violation: Host "${cleanHost}" resolves to restricted private/reserved IPv4: ${record.address}`
         );
       }
-      if (record.family === 6) {
-        const norm = record.address.toLowerCase();
-        if (
-          norm === "::1" ||
-          norm === "0:0:0:0:0:0:0:1" ||
-          norm.startsWith("fe80:") ||
-          norm.startsWith("fc00:") ||
-          norm.startsWith("fd00:")
-        ) {
-          throw new EgressSecurityError(
-            `Egress violation: Host "${cleanHost}" resolves to restricted private/reserved IPv6: ${record.address}`
-          );
-        }
+      if (record.family === 6 && isPrivateOrReservedIpv6(record.address)) {
+        throw new EgressSecurityError(
+          `Egress violation: Host "${cleanHost}" resolves to restricted private/reserved IPv6: ${record.address}`
+        );
       }
     }
   }
@@ -141,9 +138,19 @@ export class EgressFilterProxy {
   private options: EgressProxyOptions;
   public port = 0;
   public proxyUrl = "";
+  public requestLogs: EgressRequestLog[] = [];
 
   constructor(options: EgressProxyOptions = {}) {
     this.options = options;
+  }
+
+  private logEvent(log: EgressRequestLog) {
+    this.requestLogs.push(log);
+    if (this.options.onRequestLog) {
+      try {
+        this.options.onRequestLog(log);
+      } catch {}
+    }
   }
 
   /**
@@ -185,15 +192,19 @@ export class EgressFilterProxy {
    * Handles plain HTTP requests (including plain WebSocket upgrade requests).
    */
   private async handleHttpRequest(req: http.IncomingMessage, res: http.ServerResponse) {
-    try {
-      const rawUrl = req.url || "";
-      let parsedUrl: URL;
+    const rawUrl = req.url || "";
+    let parsedUrl: URL;
 
+    try {
       try {
         parsedUrl = new URL(rawUrl);
       } catch {
-        res.writeHead(400, { "Content-Type": "text/plain" });
-        return res.end("Invalid URL format");
+        if (req.headers.host) {
+          parsedUrl = new URL(`http://${req.headers.host}${rawUrl}`);
+        } else {
+          res.writeHead(400, { "Content-Type": "text/plain" });
+          return res.end("Invalid URL format");
+        }
       }
 
       const targetPort = parsedUrl.port ? parseInt(parsedUrl.port, 10) : 80;
@@ -216,12 +227,34 @@ export class EgressFilterProxy {
           },
         },
         (upstreamRes) => {
+          this.logEvent({
+            timestamp: new Date().toISOString(),
+            type: "HTTP",
+            method: req.method || "GET",
+            target: rawUrl,
+            clientIp: req.socket.remoteAddress,
+            blocked: false,
+            statusCode: upstreamRes.statusCode || 200,
+            destinationIp: destination.resolvedIp,
+          });
+
           res.writeHead(upstreamRes.statusCode || 200, upstreamRes.headers);
           upstreamRes.pipe(res);
         }
       );
 
       upstreamReq.on("error", (err) => {
+        this.logEvent({
+          timestamp: new Date().toISOString(),
+          type: "HTTP",
+          method: req.method || "GET",
+          target: rawUrl,
+          clientIp: req.socket.remoteAddress,
+          blocked: false,
+          statusCode: 502,
+          reason: `Upstream error: ${err.message}`,
+        });
+
         if (!res.headersSent) {
           res.writeHead(502, { "Content-Type": "text/plain" });
         }
@@ -231,6 +264,17 @@ export class EgressFilterProxy {
       req.pipe(upstreamReq);
     } catch (err: any) {
       const status = err instanceof EgressSecurityError ? 403 : 502;
+      this.logEvent({
+        timestamp: new Date().toISOString(),
+        type: "HTTP",
+        method: req.method || "GET",
+        target: rawUrl,
+        clientIp: req.socket.remoteAddress,
+        blocked: true,
+        statusCode: status,
+        reason: err.message,
+      });
+
       res.writeHead(status, { "Content-Type": "text/plain" });
       res.end(`Egress blocked: ${err.message}`);
     }
@@ -244,8 +288,19 @@ export class EgressFilterProxy {
     clientSocket: stream.Duplex,
     head: Buffer
   ) {
+    const rawTarget = req.url || "";
+    let rawHost = "";
+    let rawPort = "";
+
+    const lastColon = rawTarget.lastIndexOf(":");
+    if (lastColon !== -1) {
+      rawHost = rawTarget.substring(0, lastColon);
+      rawPort = rawTarget.substring(lastColon + 1);
+    } else {
+      rawHost = rawTarget;
+    }
+
     try {
-      const [rawHost, rawPort] = (req.url || "").split(":");
       const targetPort = rawPort ? parseInt(rawPort, 10) : 443;
 
       if (!rawHost) {
@@ -267,6 +322,17 @@ export class EgressFilterProxy {
           port: destination.port,
         },
         () => {
+          this.logEvent({
+            timestamp: new Date().toISOString(),
+            type: "CONNECT",
+            method: "CONNECT",
+            target: rawTarget,
+            clientIp: (clientSocket as any).remoteAddress,
+            blocked: false,
+            statusCode: 200,
+            destinationIp: destination.resolvedIp,
+          });
+
           clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
           if (head && head.length > 0) {
             upstreamSocket.write(head);
@@ -276,7 +342,18 @@ export class EgressFilterProxy {
         }
       );
 
-      upstreamSocket.on("error", () => {
+      upstreamSocket.on("error", (err) => {
+        this.logEvent({
+          timestamp: new Date().toISOString(),
+          type: "CONNECT",
+          method: "CONNECT",
+          target: rawTarget,
+          clientIp: (clientSocket as any).remoteAddress,
+          blocked: false,
+          statusCode: 502,
+          reason: `Upstream socket error: ${err.message}`,
+        });
+
         clientSocket.write("HTTP/1.1 502 Bad Gateway\r\n\r\n");
         clientSocket.destroy();
       });
@@ -285,6 +362,17 @@ export class EgressFilterProxy {
         upstreamSocket.destroy();
       });
     } catch (err: any) {
+      this.logEvent({
+        timestamp: new Date().toISOString(),
+        type: "CONNECT",
+        method: "CONNECT",
+        target: rawTarget,
+        clientIp: (clientSocket as any).remoteAddress,
+        blocked: true,
+        statusCode: 403,
+        reason: err.message,
+      });
+
       clientSocket.write(
         `HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain\r\n\r\nEgress blocked: ${err.message}`
       );
