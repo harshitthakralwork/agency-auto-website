@@ -22,7 +22,8 @@ const navigation = [
   { name: "Research Studio", href: "/research", icon: Compass },
   { name: "Design Blueprints", href: "/blueprints", icon: FileText },
   { name: "Component Registry", href: "/registry", icon: Boxes },
-  { name: "Industry Packs (6)", href: "/categories", icon: Layers },
+  { name: "Page Composer", href: "/composer", icon: Layers },
+  { name: "Industry Packs (6)", href: "/categories", icon: Palette },
   { name: "Design Presets (5)", href: "/design-presets", icon: Palette },
 ];
 
