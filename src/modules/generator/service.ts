@@ -14,6 +14,7 @@ import { JsBundler } from "./js-bundler";
 import { ZipBundler } from "./zip-bundler";
 import { CinematicIntegration } from "./cinematic-integration";
 import { ImmersiveIntegration } from "./immersive-integration";
+import { DeploymentManifestGenerator } from "../export/deployment-manifest";
 import {
   GenerationOptions,
   GenerationResult,
@@ -361,7 +362,14 @@ export class WebsiteGeneratorService {
     const manifestPath = path.join(outputDir, "build-manifest.json");
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
 
-    // 12. Create ZIP archive if requested or by default
+    // 12. Generate Production Deployment Package (Phase 6.3)
+    try {
+      DeploymentManifestGenerator.generateDeploymentPackage(outputDir, manifest);
+    } catch (deployErr: any) {
+      warnings.push(`Deployment package generation warning: ${deployErr.message}`);
+    }
+
+    // 13. Create ZIP archive if requested or by default
     let zipPath: string | undefined = undefined;
     if (options.zip !== false) {
       zipPath = path.join(outputDir, `../${project.slug || project.id}_website_${buildId}.zip`);
