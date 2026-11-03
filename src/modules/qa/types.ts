@@ -43,3 +43,4 @@ export interface QAAuditResult {
   issues: QAIssue[];
   auditedAt: string;
 }
+

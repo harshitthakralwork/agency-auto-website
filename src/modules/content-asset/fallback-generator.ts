@@ -67,3 +67,4 @@ export class AssetFallbackGenerator {
     return `data:image/svg+xml;base64,${base64}`;
   }
 }
+

@@ -53,3 +53,4 @@ export const ProjectAssetAuditSummarySchema = z.object({
   totalMatchedSlots: z.number().int().min(0),
   pages: z.array(PageAssetAuditReportSchema),
 });
+

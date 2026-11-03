@@ -148,3 +148,4 @@ export class ZipBundler {
     fs.writeFileSync(targetZipPath, fullZip);
   }
 }
+

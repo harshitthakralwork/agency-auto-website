@@ -141,3 +141,4 @@ Before shipping to clients or publishing live:
 2. **Network Tab Inspection:** Open Chrome DevTools Network tab during navigation. Ensure all requests resolve to the local origin; zero requests should initiate to external CDNs (`cdnjs`, `unpkg`, `cdn.jsdelivr.net`, `fonts.googleapis.com`).
 3. **Responsive Breakpoints:** Test viewports at 375px (mobile), 768px (tablet), and 1280px+ (desktop).
 4. **Form Interception:** Test contact and booking forms. The default runtime provides graceful toast notifications and client-side validation.
+
