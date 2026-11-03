@@ -11,6 +11,7 @@ import {
   Eye,
   SlidersHorizontal,
   Compass,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Projects Catalog", href: "/projects", icon: FolderKanban },
   { name: "Research Studio", href: "/research", icon: Compass },
+  { name: "Design Blueprints", href: "/blueprints", icon: FileText },
   { name: "Industry Packs (6)", href: "/categories", icon: Layers },
   { name: "Design Presets (5)", href: "/design-presets", icon: Palette },
 ];

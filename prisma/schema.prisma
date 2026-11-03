@@ -25,6 +25,7 @@ model Project {
   assets          ProjectAsset[]
   videoJobs       VideoProcessingJob[]
   researchSessions ResearchSession[]
+  blueprints      WebsiteBlueprint[]
 
   @@index([category])
   @@index([experienceLevel])
@@ -188,6 +189,8 @@ model ResearchSession {
   // Selected Findings for Blueprint Planning (persisted manual operator curation)
   selectedFindingsJson  String    @default("[]")
 
+  blueprints            WebsiteBlueprint[]
+
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -195,6 +198,54 @@ model ResearchSession {
   @@index([status])
   @@index([projectId])
   @@index([createdAt])
+}
+
+model WebsiteBlueprint {
+  id                         String           @id @default(cuid())
+  projectId                  String?
+  project                    Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  researchSessionId          String?
+  researchSession            ResearchSession? @relation(fields: [researchSessionId], references: [id], onDelete: SetNull)
+
+  title                      String
+  slug                       String
+  version                    Int              @default(1)
+  parentBlueprintId          String?
+  status                     String           @default("DRAFT") // DRAFT, REVIEW, APPROVED, ARCHIVED
+  industry                   String
+  experienceLevel            String           @default("CINEMATIC") // STANDARD, CINEMATIC, IMMERSIVE_3D
+
+  // Core Blueprint JSON Fields
+  businessProfileJson        String           @default("{}")
+  brandDirectionJson         String           @default("{}")
+  websiteStrategyJson        String           @default("{}")
+  sitemapJson                String           @default("[]")
+  pageHierarchyJson          String           @default("[]")
+  designSystemJson           String           @default("{}")
+  experienceRequirementsJson String           @default("{}")
+  seoAccessibilityJson       String           @default("{}")
+
+  // Provenance & Audit Metadata
+  provenanceMetadataJson     String           @default("{}")
+
+  // Strategic Multiple Design Directions (Min 3 distinct directions)
+  designDirectionsJson       String           @default("[]")
+  activeDirectionId          String?
+
+  // Versioning and Approval Lifecycle
+  changeSummary              String?
+  approvedAt                 DateTime?
+  approvedBy                 String?
+
+  createdAt                  DateTime         @default(now())
+  updatedAt                  DateTime         @updatedAt
+
+  @@index([projectId])
+  @@index([researchSessionId])
+  @@index([status])
+  @@index([industry])
+  @@index([version])
+  @@index([slug])
 }
 
 
