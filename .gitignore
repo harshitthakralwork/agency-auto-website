@@ -40,6 +40,7 @@ yarn-error.log*
 # sqlite
 *.db
 *.db-journal
+!prisma/dev.db
 
 # uploads & storage
 /public/uploads/

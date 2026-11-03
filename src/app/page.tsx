@@ -33,67 +33,86 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [
-    projects,
-    totalProjects,
-    draftCount,
-    inProgressCount,
-    reviewCount,
-    completedCount,
-    standardCount,
-    cinematicCount,
-    threeDCount,
-    recentSessions,
-    totalSessions,
-    recentBlueprints,
-    totalBlueprints,
-    totalPagesCount,
-  ] = await Promise.all([
-    db.project.findMany({
-      orderBy: { updatedAt: "desc" },
-      include: {
-        designConfig: true,
-        pageCompositions: { select: { id: true, title: true } },
-        blueprints: { select: { id: true, title: true, version: true, status: true } },
-      },
-      take: 6,
-    }),
-    db.project.count(),
-    db.project.count({ where: { status: "DRAFT" } }),
-    db.project.count({ where: { status: "IN_PROGRESS" } }),
-    db.project.count({ where: { status: "READY_FOR_REVIEW" } }),
-    db.project.count({ where: { status: "COMPLETED" } }),
-    db.project.count({ where: { experienceLevel: "STANDARD" } }),
-    db.project.count({ where: { experienceLevel: "CINEMATIC" } }),
-    db.project.count({ where: { experienceLevel: "IMMERSIVE_3D" } }),
-    db.researchSession.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 3,
-      select: {
-        id: true,
-        targetDomain: true,
-        targetUrl: true,
-        industry: true,
-        status: true,
-        createdAt: true,
-      },
-    }),
-    db.researchSession.count(),
-    db.websiteBlueprint.findMany({
-      orderBy: { updatedAt: "desc" },
-      take: 3,
-      select: {
-        id: true,
-        title: true,
-        version: true,
-        status: true,
-        industry: true,
-        updatedAt: true,
-      },
-    }),
-    db.websiteBlueprint.count(),
-    db.pageComposition.count(),
-  ]);
+  let projects: any[] = [];
+  let totalProjects = 0;
+  let draftCount = 0;
+  let inProgressCount = 0;
+  let reviewCount = 0;
+  let completedCount = 0;
+  let standardCount = 0;
+  let cinematicCount = 0;
+  let threeDCount = 0;
+  let recentSessions: any[] = [];
+  let totalSessions = 0;
+  let recentBlueprints: any[] = [];
+  let totalBlueprints = 0;
+  let totalPagesCount = 0;
+
+  try {
+    const results = await Promise.all([
+      db.project.findMany({
+        orderBy: { updatedAt: "desc" },
+        include: {
+          designConfig: true,
+          pageCompositions: { select: { id: true, title: true } },
+          blueprints: { select: { id: true, title: true, version: true, status: true } },
+        },
+        take: 6,
+      }),
+      db.project.count(),
+      db.project.count({ where: { status: "DRAFT" } }),
+      db.project.count({ where: { status: "IN_PROGRESS" } }),
+      db.project.count({ where: { status: "READY_FOR_REVIEW" } }),
+      db.project.count({ where: { status: "COMPLETED" } }),
+      db.project.count({ where: { experienceLevel: "STANDARD" } }),
+      db.project.count({ where: { experienceLevel: "CINEMATIC" } }),
+      db.project.count({ where: { experienceLevel: "IMMERSIVE_3D" } }),
+      db.researchSession.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 3,
+        select: {
+          id: true,
+          targetDomain: true,
+          targetUrl: true,
+          industry: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+      db.researchSession.count(),
+      db.websiteBlueprint.findMany({
+        orderBy: { updatedAt: "desc" },
+        take: 3,
+        select: {
+          id: true,
+          title: true,
+          version: true,
+          status: true,
+          industry: true,
+          updatedAt: true,
+        },
+      }),
+      db.websiteBlueprint.count(),
+      db.pageComposition.count(),
+    ]);
+
+    projects = results[0];
+    totalProjects = results[1];
+    draftCount = results[2];
+    inProgressCount = results[3];
+    reviewCount = results[4];
+    completedCount = results[5];
+    standardCount = results[6];
+    cinematicCount = results[7];
+    threeDCount = results[8];
+    recentSessions = results[9];
+    totalSessions = results[10];
+    recentBlueprints = results[11];
+    totalBlueprints = results[12];
+    totalPagesCount = results[13];
+  } catch (err) {
+    console.warn("Could not load dashboard data from database:", err);
+  }
 
   const pipelineStages = [
     {

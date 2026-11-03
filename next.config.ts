@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  outputFileTracingIncludes: {
+    "/**": ["./prisma/**/*"],
+  },
   async rewrites() {
     return [
       {

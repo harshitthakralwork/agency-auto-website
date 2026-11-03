@@ -55,9 +55,9 @@ export default async function CategoryDetailPage(props: {
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
           <div className="space-y-3 max-w-3xl">
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+              <span className="text-2xl md:text-3xl font-bold text-white tracking-tight">
                 {pack.title}
-              </h1>
+              </span>
               <span className="text-xs font-mono px-2.5 py-0.5 rounded-md bg-indigo-950/80 text-indigo-400 border border-indigo-800/60 uppercase">
                 ID: {pack.id}
               </span>
@@ -353,3 +353,4 @@ export default async function CategoryDetailPage(props: {
     </div>
   );
 }
+

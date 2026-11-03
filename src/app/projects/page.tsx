@@ -2,18 +2,23 @@ import { db } from "@/lib/db";
 import { ProjectCatalog } from "@/components/projects/project-catalog";
 
 export default async function ProjectsPage() {
-  const projects = await db.project.findMany({
-    orderBy: { updatedAt: "desc" },
-    include: {
-      designConfig: {
-        select: {
-          preset: true,
-          primaryColor: true,
-          headingFont: true,
+  let projects: any[] = [];
+  try {
+    projects = await db.project.findMany({
+      orderBy: { updatedAt: "desc" },
+      include: {
+        designConfig: {
+          select: {
+            preset: true,
+            primaryColor: true,
+            headingFont: true,
+          },
         },
       },
-    },
-  });
+    });
+  } catch (err) {
+    console.warn("Could not load projects from database:", err);
+  }
 
   return (
     <div className="space-y-6">

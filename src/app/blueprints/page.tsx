@@ -5,29 +5,38 @@ import { BlueprintCatalogView } from "@/components/blueprint/blueprint-catalog-v
 export const dynamic = "force-dynamic";
 
 export default async function BlueprintsPage() {
-  const [blueprints, sessions] = await Promise.all([
-    db.websiteBlueprint.findMany({
-      orderBy: { updatedAt: "desc" },
-      include: {
-        project: { select: { id: true, name: true } },
-        researchSession: {
-          select: { id: true, targetDomain: true, targetUrl: true },
+  let blueprints: any[] = [];
+  let sessions: any[] = [];
+
+  try {
+    const results = await Promise.all([
+      db.websiteBlueprint.findMany({
+        orderBy: { updatedAt: "desc" },
+        include: {
+          project: { select: { id: true, name: true } },
+          researchSession: {
+            select: { id: true, targetDomain: true, targetUrl: true },
+          },
         },
-      },
-    }),
-    db.researchSession.findMany({
-      where: { status: "COMPLETED" },
-      orderBy: { completedAt: "desc" },
-      take: 20,
-      select: {
-        id: true,
-        targetDomain: true,
-        targetUrl: true,
-        industry: true,
-        status: true,
-      },
-    }),
-  ]);
+      }),
+      db.researchSession.findMany({
+        where: { status: "COMPLETED" },
+        orderBy: { completedAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          targetDomain: true,
+          targetUrl: true,
+          industry: true,
+          status: true,
+        },
+      }),
+    ]);
+    blueprints = results[0];
+    sessions = results[1];
+  } catch (err) {
+    console.warn("Could not load blueprints/sessions from database:", err);
+  }
 
   const serializedBlueprints = blueprints.map((bp) => ({
     id: bp.id,

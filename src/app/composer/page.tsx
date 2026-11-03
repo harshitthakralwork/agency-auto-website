@@ -15,23 +15,39 @@ export default async function ComposerPage(props: {
   searchParams: Promise<{ project?: string }>;
 }) {
   const searchParams = await props.searchParams;
-  const projects = await db.project.findMany({
-    select: { id: true, name: true, category: true, experienceLevel: true },
-    orderBy: { updatedAt: "desc" },
-  });
+
+  let projects: any[] = [];
+  try {
+    projects = await db.project.findMany({
+      select: { id: true, name: true, category: true, experienceLevel: true },
+      orderBy: { updatedAt: "desc" },
+    });
+  } catch (err) {
+    console.warn("Could not load projects from database:", err);
+  }
 
   const selectedProjectId = searchParams.project || projects[0]?.id || "";
 
-  const blueprints = await db.websiteBlueprint.findMany({
-    select: { id: true, title: true, projectId: true },
-    orderBy: { updatedAt: "desc" },
-  });
+  let blueprints: any[] = [];
+  try {
+    blueprints = await db.websiteBlueprint.findMany({
+      select: { id: true, title: true, projectId: true },
+      orderBy: { updatedAt: "desc" },
+    });
+  } catch (err) {
+    console.warn("Could not load blueprints from database:", err);
+  }
 
   const componentDefinitions = RegistryService.getAllDefinitions();
 
-  const initialPages = selectedProjectId
-    ? await CompositionService.getProjectCompositions(selectedProjectId)
-    : [];
+  let initialPages: any[] = [];
+  if (selectedProjectId) {
+    try {
+      initialPages = await CompositionService.getProjectCompositions(selectedProjectId);
+    } catch (err) {
+      console.warn("Could not load compositions from database:", err);
+    }
+  }
 
   return (
     <PageComposerView
