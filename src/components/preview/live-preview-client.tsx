@@ -23,7 +23,13 @@ import {
   MoveHorizontal,
   Video,
   Image as ImageIcon,
+  Download,
+  AlertTriangle,
+  FileCheck,
+  Activity,
+  X,
 } from "lucide-react";
+import { QAAuditResult } from "@/modules/qa/types";
 import { Button } from "@/components/ui/button";
 import { resolveDesignState, generateCssVariables } from "@/modules/design/resolver";
 import { getCategoryPack } from "@/modules/categories/registry";
@@ -106,6 +112,46 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
     const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
     const pos = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
     setSliderPosition(pos);
+  };
+
+  // QA Audit & Site Generation state
+  const [isQaOpen, setIsQaOpen] = useState(false);
+  const [qaResult, setQaResult] = useState<QAAuditResult | null>(null);
+  const [isLoadingQa, setIsLoadingQa] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleRunQa = async () => {
+    setIsLoadingQa(true);
+    setIsQaOpen(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/qa-audit`);
+      if (res.ok) {
+        const data = await res.json();
+        setQaResult(data);
+      }
+    } catch (err) {
+      console.error("Failed to run QA audit:", err);
+    } finally {
+      setIsLoadingQa(false);
+    }
+  };
+
+  const handleGenerateSite = async () => {
+    setIsGenerating(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/generate-site`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zip: true }),
+      });
+      if (res.ok) {
+        window.location.href = `/api/projects/${project.id}/generated-site?download=true`;
+      }
+    } catch (err) {
+      console.error("Failed to generate site package:", err);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   // Enabled sections sorted by order
@@ -269,6 +315,23 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
 
         {/* Right: Actions & Disclaimer */}
         <div className="flex items-center gap-2.5">
+          <button
+            onClick={handleRunQa}
+            className="flex items-center gap-1.5 text-xs text-emerald-300 hover:text-white transition-colors font-medium border border-emerald-800/80 bg-emerald-950/60 px-2.5 py-1 rounded-lg cursor-pointer"
+          >
+            <FileCheck className="h-3.5 w-3.5 text-emerald-400" />
+            <span>{qaResult ? `QA: ${qaResult.overallScore}/100` : "Run QA Audit"}</span>
+          </button>
+
+          <button
+            onClick={handleGenerateSite}
+            disabled={isGenerating}
+            className="flex items-center gap-1.5 text-xs text-indigo-300 hover:text-white transition-colors font-medium border border-indigo-800/80 bg-indigo-950/60 px-2.5 py-1 rounded-lg cursor-pointer disabled:opacity-50"
+          >
+            <Download className="h-3.5 w-3.5 text-indigo-400" />
+            <span>{isGenerating ? "Compiling..." : "Export Site"}</span>
+          </button>
+
           <Link
             href={`/projects/${project.id}/media`}
             className="flex items-center gap-1.5 text-xs text-cyan-300 hover:text-white transition-colors font-medium border border-cyan-800/80 bg-cyan-950/60 px-2.5 py-1 rounded-lg"
@@ -773,6 +836,128 @@ export function LivePreviewClient({ project }: LivePreviewProps) {
           </div>
         </div>
       </div>
+
+      {/* QA Audit Drawer / Modal */}
+      {isQaOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950">
+              <div className="flex items-center gap-2.5">
+                <FileCheck className="h-5 w-5 text-emerald-400" />
+                <h3 className="text-base font-bold text-white">Automated QA & Compliance Audit</h3>
+              </div>
+              <button
+                onClick={() => setIsQaOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-6">
+              {isLoadingQa ? (
+                <div className="flex flex-col items-center justify-center py-16 space-y-3">
+                  <Activity className="h-8 w-8 text-indigo-400 animate-spin" />
+                  <p className="text-sm text-slate-400 font-medium">Running Accessibility, Security, SEO & Route Verifications...</p>
+                </div>
+              ) : qaResult ? (
+                <>
+                  {/* Top Score Banner */}
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <div>
+                      <div className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Overall Quality Score</div>
+                      <div className="text-3xl font-extrabold text-white mt-1 flex items-baseline gap-2">
+                        <span>{qaResult.overallScore}</span>
+                        <span className="text-sm font-normal text-slate-400">/ 100</span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                        qaResult.status === "PASSED"
+                          ? "bg-emerald-950 text-emerald-400 border border-emerald-800"
+                          : qaResult.status === "NEEDS_ATTENTION"
+                          ? "bg-amber-950 text-amber-400 border border-amber-800"
+                          : "bg-rose-950 text-rose-400 border border-rose-800"
+                      }`}>
+                        {qaResult.status === "PASSED" ? "✓ Production Ready" : qaResult.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Category Breakdown Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {Object.entries(qaResult.categories).map(([key, cat]) => (
+                      <div key={key} className="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-200">{cat.name}</span>
+                          <span className={`text-xs font-mono font-bold ${
+                            cat.score >= 90 ? "text-emerald-400" : cat.score >= 75 ? "text-amber-400" : "text-rose-400"
+                          }`}>
+                            {cat.score}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${cat.score >= 90 ? "bg-emerald-500" : cat.score >= 75 ? "bg-amber-500" : "bg-rose-500"}`}
+                            style={{ width: `${cat.score}%` }}
+                          />
+                        </div>
+                        <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                          <span>{cat.passedChecks} of {cat.totalChecks} checks verified</span>
+                          <span className="capitalize text-slate-400">{cat.status.toLowerCase().replace("_", " ")}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Issues or Clean Confirmation */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Audit Diagnostics & Remediation</h4>
+                    {qaResult.issues.length === 0 ? (
+                      <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-900/60 text-emerald-300 text-xs flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
+                        <span>All checks passed with zero critical violations. The site is 100% compliant and ready for standalone deployment.</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {qaResult.issues.map((iss, i) => (
+                          <div key={i} className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-start gap-3 text-xs">
+                            <AlertTriangle className={`h-4 w-4 shrink-0 mt-0.5 ${
+                              iss.severity === "CRITICAL" ? "text-rose-400" : iss.severity === "WARNING" ? "text-amber-400" : "text-sky-400"
+                            }`} />
+                            <div className="space-y-1">
+                              <div className="font-semibold text-slate-200">{iss.message}</div>
+                              <div className="text-slate-400">{iss.recommendation}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-950">
+              <span className="text-xs text-slate-400">
+                {qaResult ? `Audited at ${new Date(qaResult.auditedAt).toLocaleTimeString()}` : ""}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" onClick={() => setIsQaOpen(false)} className="text-xs">
+                  Close
+                </Button>
+                <Button onClick={handleGenerateSite} disabled={isGenerating} className="text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-500">
+                  <Download className="h-3.5 w-3.5" />
+                  <span>{isGenerating ? "Compiling..." : "Export Site Package (ZIP)"}</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

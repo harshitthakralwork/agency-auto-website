@@ -63,7 +63,17 @@ export class HtmlCompiler {
         };
       });
 
-    // 2. Compile Sections
+    // 2. Compile Sections & Page Header
+    const hasHero = page.sections.some((s) => s.enabled && s.componentId.startsWith("hero-"));
+    let pageHeaderBanner = "";
+    if (!hasHero) {
+      pageHeaderBanner = `    <div class="container" style="padding-top: clamp(2.5rem, 5vw, 4rem); padding-bottom: 1.5rem;">
+      <span class="badge">${this.escape(categoryPack.title)}</span>
+      <h1 style="font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; margin-top: 0.75rem;">${this.escape(pageTitle)}</h1>
+      <p style="font-size: 1.1rem; color: color-mix(in srgb, var(--color-foreground, #0f172a) 70%, transparent); margin-top: 0.5rem; max-width: 720px;">${this.escape(pageDesc)}</p>
+    </div>\n\n`;
+    }
+
     const sectionHtmls = page.sections
       .filter((s) => s.enabled)
       .map((section) => this.renderSection(section, context))
@@ -170,7 +180,7 @@ ${navItems
 
   <!-- Main Content -->
   <main id="main-content">
-${sectionHtmls}
+${pageHeaderBanner}${sectionHtmls}
   </main>
 
   <!-- Site Footer -->
@@ -197,11 +207,12 @@ ${navItems
         </div>
 
         <div class="footer-col">
-          <h4>Client Support</h4>
+          <h4>Directory</h4>
           <ul class="footer-links">
-            <li><a href="contact.html">Inquiry & Appointments</a></li>
-            <li><a href="about.html">Accreditations</a></li>
-            <li><a href="services.html">Service Catalog</a></li>
+${navItems
+  .slice(0, 4)
+  .map((item) => `            <li><a href="${item.href}">${this.escape(item.title)} Overview</a></li>`)
+  .join("\n")}
           </ul>
         </div>
 
