@@ -42,7 +42,7 @@ export class QAService {
     }
 
     // If no existing build was found, generate one now
-    if (!targetDir || !fs.existsSync(targetDir)) {
+    if (!targetDir || !fs.existsSync(/*turbopackIgnore: true*/ targetDir)) {
       const genResult = await WebsiteGeneratorService.generateWebsite(projectId, {
         projectId,
         zip: false,

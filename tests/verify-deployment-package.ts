@@ -119,7 +119,7 @@ async function runTests() {
     await CompositionService.addSection(homePage.id, {
       componentId: "hero_fullscreen_visual",
       order: 0,
-      contentOverrides: {
+      propsOverride: {
         headline: "Robotics Reimagined",
         subheadline: "Autonomous high-precision industrial robotic cells.",
         ctaText: "Explore Platforms",
@@ -130,7 +130,7 @@ async function runTests() {
     await CompositionService.addSection(homePage.id, {
       componentId: "social_proof_metric_counter",
       order: 1,
-      contentOverrides: {
+      propsOverride: {
         title: "Proven Production Metrics",
         metrics: [
           { value: "99.98%", label: "System Uptime" },
@@ -151,7 +151,7 @@ async function runTests() {
     await CompositionService.addSection(solutionsPage.id, {
       componentId: "business_feature_matrix",
       order: 0,
-      contentOverrides: {
+      propsOverride: {
         headline: "Robotic Automation Capabilities",
         description: "Modular cell designs for machining, assembly, welding, and quality inspection.",
       },
@@ -168,7 +168,7 @@ async function runTests() {
     await CompositionService.addSection(contactPage.id, {
       componentId: "conversion_appointment_scheduler",
       order: 0,
-      contentOverrides: {
+      propsOverride: {
         headline: "Schedule Engineering Consultation",
         subheadline: "Meet with our robotics applications team.",
       },

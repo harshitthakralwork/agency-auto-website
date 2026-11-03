@@ -29,7 +29,7 @@ export class WebsiteGeneratorService {
    */
   public static async generateWebsite(
     projectId: string,
-    options: GenerationOptions = { projectId }
+    options: Partial<GenerationOptions> = {}
   ): Promise<GenerationResult> {
     const startTime = Date.now();
     const warnings: string[] = [];

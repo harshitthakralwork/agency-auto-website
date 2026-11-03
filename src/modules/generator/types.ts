@@ -3,7 +3,7 @@ import { CategoryPack } from "../categories/types";
 import { PageCompositionData, PageSectionCompositionData } from "../composition/types";
 
 export interface GenerationOptions {
-  projectId: string;
+  projectId?: string;
   outputDirectory?: string;
   experienceTierOverride?: "STANDARD" | "CINEMATIC" | "IMMERSIVE_3D";
   minify?: boolean;
