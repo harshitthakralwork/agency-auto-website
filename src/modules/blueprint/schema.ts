@@ -238,6 +238,7 @@ export const UpdateBlueprintInputSchema = z.object({
   designDirections: z.array(DesignDirectionSchema).optional(),
   activeDirectionId: z.string().nullable().optional(),
   changeSummary: z.string().optional(),
+  expectedVersion: z.number().int().positive().optional(),
 });
 
 export const TransitionStatusInputSchema = z.object({

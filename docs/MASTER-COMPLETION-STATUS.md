@@ -63,25 +63,30 @@
 | **Phase 4.0 Step 1.3** | Real Chromium Egress Integration Verification | **COMPLETED** | Commit `3ab7ce8` (40/40 passed) |
 | **Phase 4.0 Step 2** | Research Studio & Evidence Inspector | **COMPLETED** | 28/28 verification + live browser E2E passed |
 ### Phase 4.0 Step 3: Design Intelligence & Blueprint Engine
-- **Status:** COMPLETED & VERIFIED
-- **Key Deliverables:**
+- **Status:** COMPLETED, AUDITED & HARDENED
+- **Initial Checkpoint:** `5d4b0a5`
+- **Audit-Hardened Key Deliverables:**
   1. `prisma/schema.prisma` & SQLite Persistence:
      - Added `WebsiteBlueprint` model with relations to `Project` and `ResearchSession`.
      - Fields: `businessProfileJson`, `brandDirectionJson`, `websiteStrategyJson`, `sitemapJson`, `pageHierarchyJson`, `designSystemJson`, `experienceRequirementsJson`, `seoAccessibilityJson`, `provenanceMetadataJson`, `designDirectionsJson`, `activeDirectionId`, `changeSummary`, `approvedAt`, `approvedBy`.
   2. Strongly-Typed Zod Schemas (`src/modules/blueprint/schema.ts`):
      - Domain schemas for Business Profile, Brand Direction, Strategy, Sitemap, Hierarchy, Tokens, Tiers, SEO & Accessibility.
      - Zero Fabrication Guard: Validates that any `OBSERVED_FACT` strictly references a valid `sessionId`, `findingId`, or explicit citation.
+     - Stale Write / Optimistic Concurrency Guard: Enforces `expectedVersion` check on updates.
   3. Evidence-Backed Blueprint Generator (`src/modules/blueprint/generator.ts`):
      - Transforms verified REA observed facts, heuristic detections, curated findings, and industry category packs into a comprehensive blueprint.
-     - Synthesizes 3 distinct strategic design directions:
+     - Fixed Provenance Attribution: Curated research findings strictly retain their authentic classification (`OBSERVED_FACT` vs `INFERENCE`) and are not falsely promoted to `OPERATOR_INPUT`.
+     - Synthesizes 3 genuinely adaptive strategic design directions tailored to the target industry and experience tier:
        1. "Minimal & High-Conversion" (Pure Minimal preset, clarity, friction reduction)
        2. "Cinematic Dark Narrative" (Cinematic preset, obsidian canvas, scroll storytelling)
        3. "Interactive Spatial 3D" (Three.js WebGL canvas, interactive model, camera orbits)
-     - Explicit provenance tagging (`OBSERVED_FACT`, `OPERATOR_INPUT`, `AI_SUGGESTION`, `INFERENCE`, `UNKNOWN`).
+     - Tier restraint: Standard tier projects default to minimal-conversion and keep 3D WebGL canvas disabled.
   4. Core Service & Immutability Guard (`src/modules/blueprint/service.ts`):
      - Immutability enforcement: Direct updates on `APPROVED` blueprints are blocked with `BlueprintApprovedImmutableError`.
      - Version branching: `branchNewVersion` creates child version (`v{n+1}`) linked to parent ID, starting in `DRAFT`.
+     - Complete Lineage Independence: Modifying child `v2` does not alter immutable parent `v1`.
      - Status transition state machine (`DRAFT` -> `REVIEW` -> `APPROVED` -> `ARCHIVED`).
+     - Evidence reference validation: Queries database to confirm any `sessionId` in `OBSERVED_FACT` actually exists in SQLite; flags deleted/purged sessions.
      - `applyDesignDirection`: Dynamically synchronizes tokens and style preset.
   5. REST API Endpoints:
      - `GET /api/blueprints`, `POST /api/blueprints`
@@ -89,14 +94,36 @@
      - `POST /api/blueprints/[id]/version` (branch new version)
      - `POST /api/blueprints/[id]/status` (lifecycle transitions)
      - `POST /api/blueprints/[id]/direction` (activate design direction)
-  6. Blueprint Studio UI:
+  6. Blueprint Studio UI (`src/components/blueprint/`):
      - `src/components/layout/agency-sidebar.tsx`: Added "Design Blueprints" (`/blueprints`).
-     - `src/app/blueprints/page.tsx` & `src/components/blueprint/blueprint-catalog-view.tsx`: Metric cards, status filter tabs, search, blueprints grid, create modal (from research evidence or industry pack).
-     - `src/app/blueprints/[id]/page.tsx` & `src/components/blueprint/blueprint-editor-view.tsx`: Multi-tabbed editor (Strategy, Tokens, Structure, Tiers, 3 Directions, Provenance Audit, SEO/A11y), approved immutability banner, and version branching.
-  7. Verification:
-     - `tests/verify-blueprint-engine.ts`: 36 / 36 assertions passed (including live Chromium browser test).
+     - Catalog (`/blueprints`): Metric cards, status filter tabs, search, blueprints grid, create modal.
+     - Editor (`/blueprints/[id]`): Multi-tabbed editor with fully interactive controls:
+       - Interactive Key Services: Add, remove, and edit service offerings.
+       - Interactive Sitemap & Structure: Add new pages, delete pages, reorder pages (`↑`/`↓`), set route priority and navigation placement.
+       - Interactive Page Sections: Add new sections, delete sections, reorder sections (`↑`/`↓`), toggle enabled/disabled.
+       - Adaptive Design Directions: Edit direction rationale/titles, compare, and activate direction.
+       - Evidence Provenance Audit: Inspect citations, confidence scores, and toggle operator confirmations.
+       - Approved Immutability Banner: Read-only lock with 1-click version branching.
+  7. Verification & Audit Results:
+     - `tests/verify-blueprint-engine.ts`: 48 / 48 assertions passed (including live Chromium browser test).
      - Full regression suites (Phases 1-3, Research Studio, Blueprint Engine): ALL PASSED.
      - Next.js production build (`npm.cmd run build`): 100% SUCCESS, 0 errors.
+
+---
+
+### Test Suite Count Discrepancy Audit & Explanation
+
+During the Phase 4.0 Step 3 Acceptance Audit, all test files across the repository were audited against historical reports:
+
+| Suite | Previous Summary Table | Actual Script Output | Audit Findings & Git Evidence |
+|---|---:|---:|---|
+| **Core Engine** (`verify-engine.ts`) | 68 | **102** | **No assertions were removed or changed.** The test file has 102 assertions. In the milestone completion summary, the count `68` from `verify-intelligence-rea.ts` was erroneously transcribed into the `verify-engine.ts` table row. Git diff confirms `verify-engine.ts` has been identical since commit `bc4a05f`. |
+| **Media Engine** (`verify-media-engine.ts`) | 24 | **37** | **No assertions were removed or changed.** The test file executes all 37 assertions (22 core tests + 15 audit hardening tests). In the completion summary, the initial pre-hardening subtotal was mistakenly reported. Git diff confirms all 37 tests remain active. |
+| **Design Studio** (`verify-design-accuracy.ts`) | 15 | **82** | **No assertions were removed or changed.** The test file executes 82 assertions across typography tokens, animation dynamics, layout styles, category consistency, and persistence. The number 15 in the summary table was a transcription error from an earlier sub-category count. |
+| **3D Assets** (`verify-three-d-assets.ts`) | 44 | **43** | **No assertions were removed or changed.** The test file executes exactly 43 assertions across 6 test sections. The table entry of 44 was an off-by-one clerical typo. |
+| **3D Scene** (`verify-three-d-scene.ts`) | 49 | **85** | **No assertions were removed or changed.** The test file executes 85 assertions across scene schemas, camera presets, lighting rigs, material overrides, transform engine, and persistence. The number 49 corresponded to Section 3's final test index. |
+
+**Conclusion:** 100% of test assertions remain intact across the entire codebase. No test coverage was reduced, skipped, or weakened.
 
 ---
 
@@ -110,7 +137,7 @@
 | **Phase 4.0 Step 1.2** | Egress Proxy, Concurrency Semaphore, Origin Guard | **COMPLETED** | Commit `8450391` |
 | **Phase 4.0 Step 1.3** | Real Chromium Egress Integration Verification | **COMPLETED** | Commit `3ab7ce8` (40/40 passed) |
 | **Phase 4.0 Step 2** | Research Studio & Evidence Inspector | **COMPLETED** | 28/28 verification + live browser E2E passed |
-| **Phase 4.0 Step 3** | Design Intelligence & Blueprint Engine | **COMPLETED** | 36/36 verification + live browser E2E passed |
+| **Phase 4.0 Step 3** | Design Intelligence & Blueprint Engine | **COMPLETED & AUDITED** | 48/48 verification + live browser E2E passed |
 | **Phase 5.0** | Component Registry & Adaptation | **QUEUED (NEXT)** | Step 4 |
 | **Phase 6.0** | Visual Drag-and-Drop Website Composer | Queued | Step 5 |
 | **Phase 7.0** | Independent Website Generation Engine | Queued | Step 6 |

@@ -24,6 +24,10 @@ import {
   AlertTriangle,
   RotateCcw,
   Zap,
+  Plus,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import {
   WebsiteBlueprintData,
@@ -31,6 +35,8 @@ import {
   ExperienceLevel,
   DesignDirection,
   ProvenanceRecord,
+  SitemapItem,
+  SectionRequirement,
 } from "@/modules/blueprint/types";
 
 interface BlueprintEditorViewProps {
@@ -54,6 +60,16 @@ export function BlueprintEditorView({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Inputs for adding services & journeys
+  const [newServiceInput, setNewServiceInput] = useState("");
+  const [newPageTitle, setNewPageTitle] = useState("");
+  const [newPageSlug, setNewPageSlug] = useState("");
+  const [isAddingPage, setIsAddingPage] = useState(false);
+
+  // Section add input
+  const [newSectionName, setNewSectionName] = useState("");
+  const [isAddingSection, setIsAddingSection] = useState(false);
+
   // Branch modal state
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
   const [branchSummary, setBranchSummary] = useState("");
@@ -74,7 +90,7 @@ export function BlueprintEditorView({
     { id: "tokens", label: "Brand & Tokens", icon: Palette },
     { id: "structure", label: "Sitemap & Structure", icon: Layers },
     { id: "tiers", label: "Experience Tiers", icon: Sparkles },
-    { id: "directions", label: "Design Directions (3)", icon: Zap },
+    { id: "directions", label: `Design Directions (${blueprint.designDirections?.length || 3})`, icon: Zap },
     { id: "provenance", label: "Evidence Provenance", icon: ShieldCheck },
     { id: "seo", label: "SEO & Accessibility", icon: Search },
   ];
@@ -102,6 +118,7 @@ export function BlueprintEditorView({
           experienceRequirements: blueprint.experienceRequirements,
           seoAccessibility: blueprint.seoAccessibility,
           provenanceMetadata: blueprint.provenanceMetadata,
+          designDirections: blueprint.designDirections,
           changeSummary: `Updated by operator at ${new Date().toISOString()}`,
         }),
       });
@@ -224,6 +241,140 @@ export function BlueprintEditorView({
     });
   };
 
+  // Services editing
+  const handleAddService = () => {
+    if (isApproved || !newServiceInput.trim()) return;
+    setBlueprint((prev) => ({
+      ...prev,
+      businessProfile: {
+        ...prev.businessProfile,
+        services: [...(prev.businessProfile.services || []), newServiceInput.trim()],
+      },
+    }));
+    setNewServiceInput("");
+  };
+
+  const handleRemoveService = (index: number) => {
+    if (isApproved) return;
+    setBlueprint((prev) => ({
+      ...prev,
+      businessProfile: {
+        ...prev.businessProfile,
+        services: prev.businessProfile.services.filter((_, i) => i !== index),
+      },
+    }));
+  };
+
+  // Sitemap editing (Add, Remove, Reorder)
+  const handleAddPage = () => {
+    if (isApproved || !newPageTitle.trim()) return;
+    const slug = newPageSlug.trim() || `/${newPageTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+    const newPage: SitemapItem = {
+      id: `page-${Date.now().toString(36)}`,
+      title: newPageTitle.trim(),
+      slug: slug.startsWith("/") ? slug : `/${slug}`,
+      routePriority: "MEDIUM",
+      navigationPlacement: "PRIMARY",
+      description: `${newPageTitle.trim()} page.`,
+    };
+    setBlueprint((prev) => ({
+      ...prev,
+      sitemap: [...prev.sitemap, newPage],
+    }));
+    setNewPageTitle("");
+    setNewPageSlug("");
+    setIsAddingPage(false);
+  };
+
+  const handleRemovePage = (id: string) => {
+    if (isApproved) return;
+    setBlueprint((prev) => ({
+      ...prev,
+      sitemap: prev.sitemap.filter((p) => p.id !== id),
+    }));
+  };
+
+  const handleMovePage = (index: number, direction: "up" | "down") => {
+    if (isApproved) return;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= blueprint.sitemap.length) return;
+    const updated = [...blueprint.sitemap];
+    const [moved] = updated.splice(index, 1);
+    updated.splice(targetIndex, 0, moved);
+    setBlueprint((prev) => ({ ...prev, sitemap: updated }));
+  };
+
+  // Sections editing (Add, Remove, Reorder)
+  const handleAddSection = () => {
+    if (isApproved || !newSectionName.trim()) return;
+    const currentSections = blueprint.pageHierarchy?.[0]?.sections || [];
+    const newSec: SectionRequirement = {
+      id: `sec-${Date.now().toString(36)}`,
+      name: newSectionName.trim(),
+      sectionType: "custom",
+      order: currentSections.length + 1,
+      defaultEnabled: true,
+      heading: newSectionName.trim(),
+      subheadline: "Custom designed section",
+      contentOutline: "Content specifications for this component.",
+      recommendedComponent: `${newSectionName.trim().replace(/[^a-zA-Z0-9]/g, "")}Section`,
+      mediaSlots: [],
+    };
+    const updatedHierarchy = [...blueprint.pageHierarchy];
+    if (updatedHierarchy[0]) {
+      updatedHierarchy[0] = {
+        ...updatedHierarchy[0],
+        sections: [...currentSections, newSec],
+      };
+    }
+    setBlueprint((prev) => ({ ...prev, pageHierarchy: updatedHierarchy }));
+    setNewSectionName("");
+    setIsAddingSection(false);
+  };
+
+  const handleRemoveSection = (sectionId: string) => {
+    if (isApproved) return;
+    const updatedHierarchy = [...blueprint.pageHierarchy];
+    if (updatedHierarchy[0]) {
+      updatedHierarchy[0] = {
+        ...updatedHierarchy[0],
+        sections: updatedHierarchy[0].sections
+          .filter((s) => s.id !== sectionId)
+          .map((s, idx) => ({ ...s, order: idx + 1 })),
+      };
+    }
+    setBlueprint((prev) => ({ ...prev, pageHierarchy: updatedHierarchy }));
+  };
+
+  const handleMoveSection = (index: number, direction: "up" | "down") => {
+    if (isApproved) return;
+    const currentSections = [...(blueprint.pageHierarchy?.[0]?.sections || [])];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentSections.length) return;
+    const [moved] = currentSections.splice(index, 1);
+    currentSections.splice(targetIndex, 0, moved);
+    const reordered = currentSections.map((s, idx) => ({ ...s, order: idx + 1 }));
+    const updatedHierarchy = [...blueprint.pageHierarchy];
+    if (updatedHierarchy[0]) {
+      updatedHierarchy[0] = { ...updatedHierarchy[0], sections: reordered };
+    }
+    setBlueprint((prev) => ({ ...prev, pageHierarchy: updatedHierarchy }));
+  };
+
+  const handleToggleSection = (sectionId: string) => {
+    if (isApproved) return;
+    const updatedHierarchy = [...blueprint.pageHierarchy];
+    if (updatedHierarchy[0]) {
+      updatedHierarchy[0] = {
+        ...updatedHierarchy[0],
+        sections: updatedHierarchy[0].sections.map((s) =>
+          s.id === sectionId ? { ...s, defaultEnabled: !s.defaultEnabled } : s
+        ),
+      };
+    }
+    setBlueprint((prev) => ({ ...prev, pageHierarchy: updatedHierarchy }));
+  };
+
   const getStatusBadge = (status: BlueprintStatus) => {
     switch (status) {
       case "APPROVED":
@@ -279,7 +430,7 @@ export function BlueprintEditorView({
             {getStatusBadge(blueprint.status)}
             {blueprint.parentBlueprintId && (
               <span className="text-[11px] font-mono text-slate-500 flex items-center gap-1">
-                <GitBranch className="w-3 h-3" /> from v{blueprint.version - 1}
+                <GitBranch className="w-3 h-3" /> from parent
               </span>
             )}
           </div>
@@ -501,21 +652,55 @@ export function BlueprintEditorView({
               />
             </div>
 
+            {/* Key Services with Add/Remove */}
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                Key Services
+                Key Services ({blueprint.businessProfile.services?.length || 0})
               </label>
               <div className="space-y-1.5">
                 {blueprint.businessProfile.services?.map((svc, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 p-2 bg-slate-950 border border-slate-800/80 rounded-lg text-xs text-slate-300"
+                    className="flex items-center justify-between gap-2 p-2 bg-slate-950 border border-slate-800/80 rounded-lg text-xs text-slate-300"
                   >
-                    <span className="font-mono text-indigo-400">0{idx + 1}.</span>
-                    <span>{svc}</span>
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="font-mono text-indigo-400">0{idx + 1}.</span>
+                      <span className="truncate">{svc}</span>
+                    </div>
+                    {!isApproved && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveService(idx)}
+                        className="text-slate-500 hover:text-red-400 p-1"
+                        title="Remove service"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
+
+              {!isApproved && (
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="text"
+                    placeholder="Add new service offering..."
+                    value={newServiceInput}
+                    onChange={(e) => setNewServiceInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddService())}
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddService}
+                    disabled={!newServiceInput.trim()}
+                    className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium"
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -569,15 +754,15 @@ export function BlueprintEditorView({
 
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                Target Customer Journeys
+                Target Customer Journeys ({blueprint.websiteStrategy.targetCustomerJourneys?.length || 0})
               </label>
               <div className="space-y-2">
                 {blueprint.websiteStrategy.targetCustomerJourneys?.map((journey, idx) => (
                   <div
                     key={idx}
-                    className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-1 text-xs"
+                    className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-1 text-xs relative group"
                   >
-                    <div className="flex items-center justify-between font-semibold text-slate-200">
+                    <div className="flex items-center justify-between font-semibold text-slate-200 pr-6">
                       <span>{journey.persona}</span>
                       <span className="text-[11px] font-mono text-indigo-400">
                         {journey.initialLanding}
@@ -763,34 +948,114 @@ export function BlueprintEditorView({
         </div>
       )}
 
-      {/* TAB 3: Sitemap & Page Hierarchy */}
+      {/* TAB 3: Sitemap & Page Hierarchy (Fully Editable) */}
       {activeTab === "structure" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Sitemap */}
           <div className="p-5 bg-slate-900 border border-slate-800 rounded-xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Compass className="w-4 h-4 text-indigo-400" /> Information Architecture & Sitemap
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Compass className="w-4 h-4 text-indigo-400" /> Information Architecture & Sitemap ({blueprint.sitemap?.length || 0})
+              </h3>
+              {!isApproved && (
+                <button
+                  type="button"
+                  onClick={() => setIsAddingPage(true)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Page
+                </button>
+              )}
+            </div>
+
+            {/* Add page form */}
+            {isAddingPage && (
+              <div className="p-3 bg-slate-950 border border-indigo-500/40 rounded-lg space-y-2 text-xs">
+                <p className="font-semibold text-slate-200">New Sitemap Page</p>
+                <input
+                  type="text"
+                  placeholder="Page Title (e.g. Specialists)"
+                  value={newPageTitle}
+                  onChange={(e) => setNewPageTitle(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-xs text-slate-200"
+                />
+                <input
+                  type="text"
+                  placeholder="Slug (e.g. /specialists)"
+                  value={newPageSlug}
+                  onChange={(e) => setNewPageSlug(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-xs text-slate-200"
+                />
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingPage(false)}
+                    className="px-2 py-1 text-slate-400 hover:text-slate-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddPage}
+                    disabled={!newPageTitle.trim()}
+                    className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium disabled:opacity-50"
+                  >
+                    Confirm Add
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
-              {blueprint.sitemap?.map((page) => (
+              {blueprint.sitemap?.map((page, idx) => (
                 <div
                   key={page.id}
-                  className="p-3 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-between text-xs"
+                  className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-2 text-xs"
                 >
-                  <div>
-                    <span className="font-semibold text-slate-200">{page.title}</span>
-                    <span className="font-mono text-slate-500 ml-2">{page.slug}</span>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      {page.description}
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-200">{page.title}</span>
+                      <span className="font-mono text-slate-500">{page.slug}</span>
+                    </div>
+
+                    {!isApproved && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleMovePage(idx, "up")}
+                          disabled={idx === 0}
+                          className="p-1 text-slate-500 hover:text-slate-300 disabled:opacity-30"
+                          title="Move up"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMovePage(idx, "down")}
+                          disabled={idx === blueprint.sitemap.length - 1}
+                          className="p-1 text-slate-500 hover:text-slate-300 disabled:opacity-30"
+                          title="Move down"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePage(page.id)}
+                          className="p-1 text-slate-500 hover:text-red-400"
+                          title="Delete page"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 bg-slate-800 text-slate-300 font-mono text-[10px] rounded">
-                      {page.routePriority}
+
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <span className="px-2 py-0.5 bg-slate-800 text-slate-300 font-mono rounded">
+                      Priority: {page.routePriority}
                     </span>
-                    <span className="px-2 py-0.5 bg-indigo-950 text-indigo-300 font-mono text-[10px] rounded">
-                      {page.navigationPlacement}
+                    <span className="px-2 py-0.5 bg-indigo-950 text-indigo-300 font-mono rounded">
+                      Nav: {page.navigationPlacement}
                     </span>
                   </div>
                 </div>
@@ -798,35 +1063,116 @@ export function BlueprintEditorView({
             </div>
           </div>
 
-          {/* Page Sections */}
+          {/* Page Sections (Editable Sequence) */}
           <div className="p-5 bg-slate-900 border border-slate-800 rounded-xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Layers className="w-4 h-4 text-emerald-400" /> Section Sequence (Home Page)
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Layers className="w-4 h-4 text-emerald-400" /> Section Sequence ({blueprint.pageHierarchy?.[0]?.sections?.length || 0})
+              </h3>
+              {!isApproved && (
+                <button
+                  type="button"
+                  onClick={() => setIsAddingSection(true)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Section
+                </button>
+              )}
+            </div>
+
+            {/* Add section form */}
+            {isAddingSection && (
+              <div className="p-3 bg-slate-950 border border-emerald-500/40 rounded-lg space-y-2 text-xs">
+                <p className="font-semibold text-slate-200">New Page Section</p>
+                <input
+                  type="text"
+                  placeholder="Section Name (e.g. Diagnostic Capabilities)"
+                  value={newSectionName}
+                  onChange={(e) => setNewSectionName(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-xs text-slate-200"
+                />
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingSection(false)}
+                    className="px-2 py-1 text-slate-400 hover:text-slate-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddSection}
+                    disabled={!newSectionName.trim()}
+                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium disabled:opacity-50"
+                  >
+                    Confirm Add
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
-              {blueprint.pageHierarchy?.[0]?.sections?.map((section) => (
+              {blueprint.pageHierarchy?.[0]?.sections?.map((section, idx) => (
                 <div
                   key={section.id}
-                  className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-1.5 text-xs"
+                  className={`p-3 bg-slate-950 border rounded-lg space-y-1.5 text-xs ${
+                    section.defaultEnabled ? "border-slate-800" : "border-slate-800/40 opacity-60"
+                  }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-200">
-                      {section.order}. {section.name}
-                    </span>
-                    <span className="px-2 py-0.5 bg-slate-800 text-indigo-400 font-mono text-[11px] rounded">
-                      {section.recommendedComponent}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {!isApproved && (
+                        <input
+                          type="checkbox"
+                          checked={section.defaultEnabled}
+                          onChange={() => handleToggleSection(section.id)}
+                          className="rounded border-slate-700 text-indigo-600"
+                          title="Toggle enabled"
+                        />
+                      )}
+                      <span className="font-semibold text-slate-200">
+                        {section.order}. {section.name}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 bg-slate-800 text-indigo-400 font-mono text-[11px] rounded">
+                        {section.recommendedComponent}
+                      </span>
+                      {!isApproved && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveSection(idx, "up")}
+                            disabled={idx === 0}
+                            className="p-1 text-slate-500 hover:text-slate-300 disabled:opacity-30"
+                          >
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveSection(idx, "down")}
+                            disabled={idx === (blueprint.pageHierarchy?.[0]?.sections?.length || 0) - 1}
+                            className="p-1 text-slate-500 hover:text-slate-300 disabled:opacity-30"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSection(section.id)}
+                            className="p-1 text-slate-500 hover:text-red-400"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
+
                   <p className="text-slate-400 text-[11px]">{section.contentOutline}</p>
                   {section.cinematicHook && (
                     <p className="text-amber-400 text-[11px] font-mono">
-                      Cinematic Hook: {section.cinematicHook}
-                    </p>
-                  )}
-                  {section.threeDHook && (
-                    <p className="text-cyan-400 text-[11px] font-mono">
-                      3D Hook: {section.threeDHook}
+                      Cinematic: {section.cinematicHook}
                     </p>
                   )}
                 </div>
@@ -954,7 +1300,7 @@ export function BlueprintEditorView({
         </div>
       )}
 
-      {/* TAB 5: Strategic Design Directions (Minimum 3 Directions) */}
+      {/* TAB 5: Strategic Design Directions (Editable and Switchable) */}
       {activeTab === "directions" && (
         <div className="space-y-6">
           <div className="border-b border-slate-800 pb-4">
@@ -962,12 +1308,12 @@ export function BlueprintEditorView({
               <Zap className="w-5 h-5 text-amber-400" /> Strategic Design Directions
             </h3>
             <p className="text-xs text-slate-400 mt-1">
-              Select and activate one of the 3 generated strategic design directions. Activating a direction automatically synchronizes the blueprint’s design tokens and aesthetic preset.
+              Adaptive design directions tailored to this industry and experience tier. Operators can compare, edit rationale, and activate any direction to synchronize the design tokens.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {blueprint.designDirections?.map((dir) => {
+            {blueprint.designDirections?.map((dir, dIdx) => {
               const isActive = blueprint.activeDirectionId === dir.id;
               return (
                 <div
@@ -991,10 +1337,37 @@ export function BlueprintEditorView({
                     </div>
 
                     <div>
-                      <h4 className="text-base font-bold text-white">{dir.name}</h4>
-                      <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                        {dir.rationale}
-                      </p>
+                      {!isApproved ? (
+                        <input
+                          type="text"
+                          value={dir.name}
+                          onChange={(e) => {
+                            const updated = [...blueprint.designDirections];
+                            updated[dIdx] = { ...dir, name: e.target.value };
+                            setBlueprint((prev) => ({ ...prev, designDirections: updated }));
+                          }}
+                          className="w-full font-bold text-white text-base bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 focus:outline-none"
+                        />
+                      ) : (
+                        <h4 className="text-base font-bold text-white">{dir.name}</h4>
+                      )}
+
+                      {!isApproved ? (
+                        <textarea
+                          rows={3}
+                          value={dir.rationale}
+                          onChange={(e) => {
+                            const updated = [...blueprint.designDirections];
+                            updated[dIdx] = { ...dir, rationale: e.target.value };
+                            setBlueprint((prev) => ({ ...prev, designDirections: updated }));
+                          }}
+                          className="w-full text-xs text-slate-400 mt-1.5 bg-transparent border border-transparent hover:border-slate-800 focus:border-indigo-500 focus:outline-none rounded p-1 leading-relaxed"
+                        />
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                          {dir.rationale}
+                        </p>
+                      )}
                     </div>
 
                     {/* Color Swatches */}
@@ -1401,4 +1774,3 @@ export function BlueprintEditorView({
     </div>
   );
 }
-

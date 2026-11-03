@@ -44,6 +44,15 @@ export class InvalidStatusTransitionError extends Error {
   }
 }
 
+export class StaleBlueprintWriteError extends Error {
+  constructor(id: string, expectedVersion: number, actualVersion: number) {
+    super(
+      `Stale write detected for blueprint ${id}. Expected version ${expectedVersion}, but current version is ${actualVersion}.`
+    );
+    this.name = "StaleBlueprintWriteError";
+  }
+}
+
 function parseJsonField<T>(field: string | null | undefined, defaultValue: T): T {
   if (!field) return defaultValue;
   try {
@@ -151,6 +160,17 @@ export class BlueprintService {
     }
 
     const parsed = parseBlueprintRecord(record);
+
+    // Annotate provenance if the referenced research session was purged/deleted
+    if (record.researchSessionId && !record.researchSession) {
+      for (const key of Object.keys(parsed.provenanceMetadata)) {
+        const rec = parsed.provenanceMetadata[key];
+        if (rec.sessionId === record.researchSessionId) {
+          rec.notes = (rec.notes ? `${rec.notes} ` : "") + "[Evidence Notice: Referenced research session has been deleted from database.]";
+        }
+      }
+    }
+
     return {
       ...parsed,
       project: record.project,
@@ -291,6 +311,10 @@ export class BlueprintService {
 
     const validated = UpdateBlueprintInputSchema.parse(updates);
 
+    if (validated.expectedVersion !== undefined && existing.version !== validated.expectedVersion) {
+      throw new StaleBlueprintWriteError(id, validated.expectedVersion, existing.version);
+    }
+
     const data: any = {
       updatedAt: new Date(),
     };
@@ -334,6 +358,19 @@ export class BlueprintService {
       data.seoAccessibilityJson = JSON.stringify({ ...current, ...validated.seoAccessibility });
     }
     if (validated.provenanceMetadata) {
+      // Validate that any OBSERVED_FACT referencing a sessionId actually exists in the database
+      for (const [key, rec] of Object.entries(validated.provenanceMetadata)) {
+        if (rec.sourceType === "OBSERVED_FACT" && rec.sessionId) {
+          const sess = await db.researchSession.findUnique({
+            where: { id: rec.sessionId },
+          });
+          if (!sess) {
+            throw new Error(
+              `Evidence Reference Error: Research session "${rec.sessionId}" referenced by field "${key}" does not exist in database.`
+            );
+          }
+        }
+      }
       const current = parseJsonField(existing.provenanceMetadataJson, {});
       data.provenanceMetadataJson = JSON.stringify({ ...current, ...validated.provenanceMetadata });
     }
