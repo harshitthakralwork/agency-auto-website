@@ -42,7 +42,7 @@ const CATEGORIES = [
   { id: "healthcare", label: "Healthcare & Clinics" },
   { id: "hotels-banquets", label: "Hotels & Banquets" },
   { id: "food-restaurants", label: "Food & Restaurants" },
-  { id: "fitness-gyms", label: "Fitness & Gyms" },
+  { id: "fitness-sports", label: "Fitness & Sports" },
   { id: "salon-beauty", label: "Salon & Beauty" },
   { id: "schools-coaching", label: "Schools & Coaching" },
 ];

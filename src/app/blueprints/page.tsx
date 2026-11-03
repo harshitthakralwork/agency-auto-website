@@ -47,7 +47,7 @@ export default async function BlueprintsPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10 max-w-7xl mx-auto">
+    <div className="space-y-6 pb-16">
       <BlueprintCatalogView
         initialBlueprints={serializedBlueprints}
         availableSessions={sessions}

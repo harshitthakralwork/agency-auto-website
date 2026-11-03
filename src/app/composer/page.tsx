@@ -4,6 +4,8 @@ import { RegistryService } from "@/modules/registry/service";
 import { CompositionService } from "@/modules/composition/service";
 import { PageComposerView } from "@/components/composer/page-composer-view";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Page Composition Engine | Agency Website Engine",
   description: "Visual Page Composer mapping blueprints and components into multi-page site architectures.",

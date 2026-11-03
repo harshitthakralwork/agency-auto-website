@@ -47,6 +47,7 @@ export function ResearchStudioView() {
   const [launching, setLaunching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [lastCompletedId, setLastCompletedId] = useState<string | null>(null);
 
   const fetchSessions = async () => {
     try {
@@ -99,6 +100,9 @@ export function ResearchStudioView() {
       }
 
       setSuccessMsg(`Research analysis completed for ${data.data?.targetDomain || trimmed}!`);
+      if (data.data?.id) {
+        setLastCompletedId(data.data.id);
+      }
       setTargetUrl("");
       await fetchSessions();
     } catch (err: any) {
@@ -187,23 +191,46 @@ export function ResearchStudioView() {
               <label className="text-xs font-medium text-slate-300">
                 Target Industry Category Pack
               </label>
-              <select
-                value={selectedIndustry}
-                onChange={(e) => setSelectedIndustry(e.target.value)}
-                disabled={launching}
-                className="w-full px-3 py-2.5 text-sm bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
-              >
+              <div className="grid grid-cols-2 gap-1.5">
                 {INDUSTRY_PACKS.map((pack) => (
-                  <option key={pack} value={pack}>
+                  <button
+                    key={pack}
+                    type="button"
+                    onClick={() => setSelectedIndustry(pack)}
+                    disabled={launching}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-left truncate ${
+                      selectedIndustry === pack
+                        ? "bg-indigo-600 text-white shadow-sm font-semibold"
+                        : "bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800"
+                    }`}
+                  >
                     {pack}
-                  </option>
+                  </button>
                 ))}
-              </select>
-              <p className="text-[11px] text-slate-500">
-                Associates findings with category recommendations.
-              </p>
+              </div>
             </div>
           </div>
+
+          {launching && (
+            <div className="p-4 rounded-xl bg-slate-950 border border-indigo-500/30 space-y-3">
+              <div className="flex items-center justify-between text-xs font-medium">
+                <span className="text-indigo-300 flex items-center gap-2">
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-400" />
+                  REA Sandboxed Chromium Execution Active
+                </span>
+                <span className="text-slate-500 font-mono">Analyzing Target...</span>
+              </div>
+              <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-500 via-sky-400 to-indigo-400 h-1.5 rounded-full animate-pulse w-3/4" />
+              </div>
+              <div className="grid grid-cols-4 gap-2 text-[10px] text-slate-400 font-mono">
+                <span className="text-emerald-400">✓ SSRF Guard</span>
+                <span className="text-indigo-300">● Egress Proxy</span>
+                <span>○ DOM Extract</span>
+                <span>○ Facts & Heuristics</span>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="flex items-center gap-2 p-3 rounded-xl bg-red-950/40 border border-red-800/80 text-xs text-red-300">
@@ -213,9 +240,19 @@ export function ResearchStudioView() {
           )}
 
           {successMsg && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/80 text-xs text-emerald-300">
-              <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
-              <span>{successMsg}</span>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/80 text-xs text-emerald-300">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400" />
+                <span>{successMsg}</span>
+              </div>
+              {lastCompletedId && (
+                <Link
+                  href={`/research/${lastCompletedId}`}
+                  className="px-3 py-1 rounded-md bg-emerald-700 hover:bg-emerald-600 text-white font-medium text-xs transition-colors shrink-0"
+                >
+                  Inspect Evidence →
+                </Link>
+              )}
             </div>
           )}
 

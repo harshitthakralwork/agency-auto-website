@@ -379,7 +379,114 @@ export function FactsVsHeuristics({
         )}
       </div>
 
-      {/* SECTION 3: EXPLICIT EVIDENCE LIMITATIONS */}
+      {/* SECTION 3: AI & STRATEGIC DESIGN SUGGESTIONS */}
+      <div>
+        <div className="flex items-center justify-between mb-4 pb-2 border-b border-indigo-900/40">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
+              <Palette className="h-5 w-5" />
+            </span>
+            <div>
+              <h3 className="text-base font-semibold text-indigo-300">
+                AI & Creative Design Suggestions
+              </h3>
+              <p className="text-xs text-slate-400">
+                Strategic recommendations synthesized from observed DOM signals and industry benchmarks.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-indigo-950/80 text-indigo-400 border border-indigo-800/60">
+            STRATEGIC ADVICE
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Suggested Preset */}
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-indigo-500/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-400">Recommended Style Preset</span>
+              <button
+                type="button"
+                onClick={() => onToggleFinding("AI Suggestion: Preset - Cinematic Dark Narrative")}
+                className={`p-1 rounded text-xs transition-colors ${
+                  selectedFindings.includes("AI Suggestion: Preset - Cinematic Dark Narrative")
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-800 text-slate-400 hover:text-white"
+                }`}
+                title="Select for Blueprint"
+              >
+                {selectedFindings.includes("AI Suggestion: Preset - Cinematic Dark Narrative") ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
+            <p className="text-sm font-semibold text-white">Cinematic Dark Narrative</p>
+            <p className="text-[11px] text-slate-400 leading-snug">
+              Deep graphite surface tones paired with high-contrast typography and subtle scroll reveals.
+            </p>
+          </div>
+
+          {/* Suggested Experience Tier */}
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-indigo-500/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-400">Delivery Tier Recommendation</span>
+              <button
+                type="button"
+                onClick={() => onToggleFinding("AI Suggestion: Tier - Level 2 Cinematic GSAP")}
+                className={`p-1 rounded text-xs transition-colors ${
+                  selectedFindings.includes("AI Suggestion: Tier - Level 2 Cinematic GSAP")
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-800 text-slate-400 hover:text-white"
+                }`}
+                title="Select for Blueprint"
+              >
+                {selectedFindings.includes("AI Suggestion: Tier - Level 2 Cinematic GSAP") ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
+            <p className="text-sm font-semibold text-white">Level 2 • Cinematic</p>
+            <p className="text-[11px] text-slate-400 leading-snug">
+              {facts.hasCanvas
+                ? "3D canvas observed; consider Level 3 Immersive 3D upgrade for interactive spatial scene."
+                : "Smooth scroll choreography with staggered card reveals and responsive drawer navigation."}
+            </p>
+          </div>
+
+          {/* Component Recommendations */}
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-indigo-500/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-400">Target Components</span>
+              <button
+                type="button"
+                onClick={() => onToggleFinding("AI Suggestion: Components - Hero Split, Metric Counter, FAQ Accordion")}
+                className={`p-1 rounded text-xs transition-colors ${
+                  selectedFindings.includes("AI Suggestion: Components - Hero Split, Metric Counter, FAQ Accordion")
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-800 text-slate-400 hover:text-white"
+                }`}
+                title="Select for Blueprint"
+              >
+                {selectedFindings.includes("AI Suggestion: Components - Hero Split, Metric Counter, FAQ Accordion") ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
+            <p className="text-sm font-semibold text-white">Hero Split + Social Proof Grid</p>
+            <p className="text-[11px] text-slate-400 leading-snug">
+              High-converting layout with customer testimonial carousel and direct inquiry scheduler.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 4: EXPLICIT EVIDENCE LIMITATIONS */}
       {limitations.length > 0 && (
         <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
           <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
