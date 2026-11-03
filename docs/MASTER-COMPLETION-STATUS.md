@@ -106,8 +106,22 @@
        - Approved Immutability Banner: Read-only lock with 1-click version branching.
   7. Verification & Audit Results:
      - `tests/verify-blueprint-engine.ts`: 48 / 48 assertions passed (including live Chromium browser test).
-     - Full regression suites (Phases 1-3, Research Studio, Blueprint Engine): ALL PASSED.
+     - Full regression suites across all 14 test suites (102 + 37 + 82 + 71 + 61 + 43 + 85 + 51 + 11 + 22 + 68 + 40 + 28 + 48 = 749 assertions total): ALL 749 / 749 PASSED.
      - Next.js production build (`npm.cmd run build`): 100% SUCCESS, 0 errors.
+
+---
+
+### Architectural Clarification: Immutability Enforcement & Approver Identity
+
+1. **Immutability Enforcement Layer:**
+   - **Service Layer (`src/modules/blueprint/service.ts`):** Enforced in application code by `BlueprintService.updateBlueprint()` and `BlueprintService.applyDesignDirection()`. If `record.status === "APPROVED"`, the service rejects mutation and throws `BlueprintApprovedImmutableError`.
+   - **API Layer (`src/app/api/blueprints/[id]/route.ts` & `.../direction/route.ts`):** Catches `BlueprintApprovedImmutableError` and returns `HTTP 409 Conflict` (`code: "APPROVED_IMMUTABLE"`).
+   - **Database Level (Important Distinction):** Immutability is **not** enforced by SQLite database triggers or RDBMS table-level constraints. Direct manual SQL `UPDATE` statements executed out-of-band directly on `dev.db` bypass this check. The guard exists strictly in the application service and REST API layers.
+
+2. **Approver Identity (`approvedBy`) Scope & Limitations:**
+   - The `approvedBy` field is currently a **manually supplied string label** or default role identifier (`"Lead Agency Architect"`).
+   - There is **no authentication, session management, or RBAC mechanism** implemented in the Agency Website Engine at this stage.
+   - The approval identity represents an audit trail label supplied by the operator, not an authenticated or cryptographically verified user identity.
 
 ---
 
@@ -123,7 +137,22 @@ During the Phase 4.0 Step 3 Acceptance Audit, all test files across the reposito
 | **3D Assets** (`verify-three-d-assets.ts`) | 44 | **43** | **No assertions were removed or changed.** The test file executes exactly 43 assertions across 6 test sections. The table entry of 44 was an off-by-one clerical typo. |
 | **3D Scene** (`verify-three-d-scene.ts`) | 49 | **85** | **No assertions were removed or changed.** The test file executes 85 assertions across scene schemas, camera presets, lighting rigs, material overrides, transform engine, and persistence. The number 49 corresponded to Section 3's final test index. |
 
-**Conclusion:** 100% of test assertions remain intact across the entire codebase. No test coverage was reduced, skipped, or weakened.
+**Full Assertion Audit Breakdown (All 14 Test Suites):**
+1. `tests/verify-engine.ts`: 102
+2. `tests/verify-media-engine.ts`: 37
+3. `tests/verify-design-accuracy.ts`: 82
+4. `tests/verify-cinematic-engine.ts`: 71
+5. `tests/verify-three-d-core.ts`: 61
+6. `tests/verify-three-d-assets.ts`: 43
+7. `tests/verify-three-d-scene.ts`: 85
+8. `tests/verify-three-d-animation.ts`: 51
+9. `tests/verify-three-d-runtime.ts`: 11
+10. `tests/verify-website-export.ts`: 22
+11. `tests/verify-intelligence-rea.ts`: 68
+12. `tests/verify-chromium-egress-integration.ts`: 40
+13. `tests/verify-research-studio.ts`: 28
+14. `tests/verify-blueprint-engine.ts`: 48
+**Total Verified Assertions:** **749 / 749 PASSED (100% active coverage).**
 
 ---
 
