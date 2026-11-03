@@ -3,8 +3,8 @@
 ## 1. Project Overview
 - **Project:** Agency Website Engine
 - **Directory:** `C:\Users\minem\Desktop\AI-WEBSITE-BUILDER\agency-website-engine`
-- **Current Milestone Completed:** Phase 6.0 (Website Generation Engine)
-- **Status:** Phase 6.0 COMPLETE & FULLY VERIFIED. Ready for Phase 6.1 (Cinematic & Immersive Integration).
+- **Current Milestone Completed:** Phase 6.1 (Cinematic & Immersive Integration)
+- **Status:** Phase 6.1 COMPLETE & FULLY VERIFIED. Ready for Phase 6.2 (Preview, QA & Validation).
 
 ---
 
@@ -274,19 +274,39 @@ During the Phase 4.0 Step 3 Acceptance Audit, all test files across the reposito
      - `POST /api/projects/[id]/generate-site`
      - `GET /api/projects/[id]/generated-site`
 - **Test Results:** `tests/verify-website-generation.ts`: 63 / 63 PASSED.
-  - Multi-page generation: Verified.
-  - HTML5 semantic structure & JSON-LD: Verified.
-  - 7 component families markup: Verified.
-  - CSS tokens & responsive breakpoints: Verified.
-  - Zero-CDN compliance (0 external scripts/styles): Verified.
-  - ZIP packaging (valid PK header 0x04034b50): Verified.
+
+### Phase 6.1: Cinematic & Immersive Integration
+- **Status:** COMPLETED & VERIFIED
+- **Key Deliverables:**
+  1. `src/modules/generator/cinematic-integration.ts`:
+     - Standalone, zero-CDN GSAP ScrollTrigger script generator (`js/cinematic.js`).
+     - Staggered element reveals for cards, reviews, pricing tiers, and section headings.
+     - Header shadow dynamics on scroll.
+     - Canvas frame sequence scrubber with pinned timeline integration.
+     - Prefers-reduced-motion accessibility gating.
+  2. `src/modules/generator/immersive-integration.ts`:
+     - Standalone, zero-CDN Three.js ES module generator (`js/immersive-3d.js`).
+     - WebGL capability probe with graceful fallback rendering if unsupported.
+     - ACESFilmic tone-mapping, clamped device pixel ratio (max 2), studio 3-point lighting rig (Key, Fill, Rim).
+     - Procedural and GLTF model loader support (`GLTFLoader`).
+     - Pointer drag/orbit interaction with damping, scroll-linked rotation scrub, and idle animation.
+     - WebGL context loss (`webglcontextlost`) and restoration (`webglcontextrestored`) event guards.
+  3. Native Browser Import Map (`src/modules/generator/html-compiler.ts`):
+     - Injects `<script type="importmap">` mapping bare specifiers `"three"` and `"three/addons/"` to local `./vendor/three.module.js` and `./vendor/jsm/` paths.
+     - Guarantees 100% native browser module resolution without requiring external bundlers or CDNs.
+  4. Vendor Copy Hardening (`src/modules/generator/js-bundler.ts`):
+     - Bundles `three.module.js`, `three.core.js`, `GLTFLoader.js`, `BufferGeometryUtils.js`, `SkeletonUtils.js`, `gsap.min.js`, and `ScrollTrigger.min.js`.
+- **Test Results:** `tests/verify-cinematic-immersive-integration.ts`: 25 / 25 PASSED.
+  - Local vendor script packaging: Verified.
+  - Cinematic GSAP & ScrollTrigger runtime: Verified.
+  - Immersive Three.js 3D runtime: Verified.
+  - Native import map injection: Verified.
   - Real browser Playwright E2E:
-    - Multi-page navigation (/index.html -> /services.html) verified.
-    - FAQ accordion click expansion verified.
-    - Contact form validation and toast feedback verified.
-    - Mobile 375px hamburger menu drawer open and Escape close verified.
-  - REST API routes (POST and GET): Verified.
-- **Cumulative Test Assertion Total:** **1,232 / 1,232 PASSED (100%)** across 18 test suites.
+    - Three.js WebGL `<canvas>` dynamically mounted in `#scene-3d-canvas-host`.
+    - User mouse drag orbit interaction verified.
+    - Scroll-linked rotation scrub verified.
+    - Zero uncaught exceptions, zero console errors, zero external CDN requests.
+- **Cumulative Test Assertion Total:** **1,257 / 1,257 PASSED (100%)** across 19 test suites.
 
 ---
 
@@ -304,16 +324,20 @@ During the Phase 4.0 Step 3 Acceptance Audit, all test files across the reposito
 | **Phase 5.0** | Component Registry & Adaptation Engine | **COMPLETED** | Commit `d3c9232` (363/363 passed) |
 | **Phase 5.1** | Page Composition Engine | **COMPLETED** | Commit `37f52e0` (31/31 passed) |
 | **Phase 5.2** | Content & Asset Intelligence | **COMPLETED** | Commit `6991b04` (26/26 passed) |
-| **Phase 6.0** | Website Generation Engine | **COMPLETED & VERIFIED** | 63/63 verification + live browser E2E passed |
-| **Phase 6.1** | Cinematic & Immersive Integration | **QUEUED (NEXT)** | Step 8 |
-| **Phase 6.2** | Preview, QA & Validation | Queued | Step 9 |
+| **Phase 6.0** | Website Generation Engine | **COMPLETED** | Commit `1faa130` (63/63 passed) |
+| **Phase 6.1** | Cinematic & Immersive Integration | **COMPLETED & VERIFIED** | 25/25 verification + live browser E2E passed |
+| **Phase 6.2** | Preview, QA & Validation | **QUEUED (NEXT)** | Step 9 |
 | **Phase 6.3** | Export & Deployment Preparation | Queued | Step 10 |
 | **Phase 7.0** | Production Hardening | Queued | Step 11 |
 
 ---
 
 ## 4. Exact Next Implementation Step
-**Phase 6.1 — Cinematic & Immersive Integration**:
-- Deep integration of GSAP scroll choreography and canvas frame sequences into generated output bundles for Cinematic tier.
-- Deep integration of Three.js 3D scenes, WebGL canvas loader, and camera controls into generated output bundles for Immersive 3D tier.
-- Provide runtime tier fallbacks when WebGL is unavailable.
+**Phase 6.2 — Preview, QA & Validation**:
+- Implement live client preview studio (`/preview` and `/projects/[id]/preview`) supporting desktop, tablet, and mobile viewport frames with hot device switching.
+- Implement comprehensive automated QA validator checking:
+  - WCAG accessibility standards (contrast ratios, image alt attributes, ARIA roles, heading hierarchies).
+  - Dead link / 404 detection across internal routes.
+  - Zero-CDN compliance checker.
+  - Asset payload budget audit (total size, image compression, script footprints).
+- Build automated QA score report UI and API endpoint (`GET /api/projects/[id]/qa-audit`).

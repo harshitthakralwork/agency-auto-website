@@ -12,6 +12,8 @@ import { HtmlCompiler } from "./html-compiler";
 import { CssCompiler } from "./css-compiler";
 import { JsBundler } from "./js-bundler";
 import { ZipBundler } from "./zip-bundler";
+import { CinematicIntegration } from "./cinematic-integration";
+import { ImmersiveIntegration } from "./immersive-integration";
 import {
   GenerationOptions,
   GenerationResult,
@@ -259,7 +261,26 @@ export class WebsiteGeneratorService {
     const runtimeJsPath = path.join(jsDir, "runtime.js");
     fs.writeFileSync(runtimeJsPath, runtimeJs, "utf8");
 
+    const tierScripts: string[] = ["js/runtime.js"];
     const copiedVendors = JsBundler.copyVendors(outputDir, experienceTier);
+    tierScripts.push(...copiedVendors);
+
+    // Cinematic runtime
+    if (experienceTier === "CINEMATIC" || experienceTier === "IMMERSIVE_3D") {
+      const cinematicJs = CinematicIntegration.generateCinematicScript(design);
+      const cinematicJsPath = path.join(jsDir, "cinematic.js");
+      fs.writeFileSync(cinematicJsPath, cinematicJs, "utf8");
+      tierScripts.push("js/cinematic.js");
+    }
+
+    // Immersive 3D runtime
+    if (experienceTier === "IMMERSIVE_3D") {
+      const modelPath = assetMap["THREE_D_HERO_MODEL"] || "";
+      const immersiveJs = ImmersiveIntegration.generateImmersiveScript(design, modelPath);
+      const immersiveJsPath = path.join(jsDir, "immersive-3d.js");
+      fs.writeFileSync(immersiveJsPath, immersiveJs, "utf8");
+      tierScripts.push("js/immersive-3d.js");
+    }
 
     // 9. Compile All Pages into HTML files
     const generatedPagesMeta: GeneratedPageMeta[] = [];
@@ -330,7 +351,7 @@ export class WebsiteGeneratorService {
         assets: generatedAssetRefs,
       },
       styles: ["css/styles.css"],
-      scripts: ["js/runtime.js", ...copiedVendors],
+      scripts: tierScripts,
       generatedAt: new Date().toISOString(),
       zeroCdnVerified,
       status: zeroCdnVerified ? "SUCCESS" : "WARNING",

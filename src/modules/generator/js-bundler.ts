@@ -340,18 +340,35 @@ export class JsBundler {
 
     if (experienceTier === "IMMERSIVE_3D") {
       const vendorJsmLoaders = path.join(vendorDir, "jsm", "loaders");
+      const vendorJsmUtils = path.join(vendorDir, "jsm", "utils");
       fs.mkdirSync(vendorJsmLoaders, { recursive: true });
+      fs.mkdirSync(vendorJsmUtils, { recursive: true });
 
       const threeSrc = path.join(nodeModulesDir, "three", "build", "three.module.js");
+      const threeCoreSrc = path.join(nodeModulesDir, "three", "build", "three.core.js");
       const gltfLoaderSrc = path.join(nodeModulesDir, "three", "examples", "jsm", "loaders", "GLTFLoader.js");
+      const bufferGeoUtilsSrc = path.join(nodeModulesDir, "three", "examples", "jsm", "utils", "BufferGeometryUtils.js");
+      const skeletonUtilsSrc = path.join(nodeModulesDir, "three", "examples", "jsm", "utils", "SkeletonUtils.js");
 
       if (fs.existsSync(threeSrc)) {
         fs.copyFileSync(threeSrc, path.join(vendorDir, "three.module.js"));
         copiedVendors.push("vendor/three.module.js");
       }
+      if (fs.existsSync(threeCoreSrc)) {
+        fs.copyFileSync(threeCoreSrc, path.join(vendorDir, "three.core.js"));
+        copiedVendors.push("vendor/three.core.js");
+      }
       if (fs.existsSync(gltfLoaderSrc)) {
         fs.copyFileSync(gltfLoaderSrc, path.join(vendorJsmLoaders, "GLTFLoader.js"));
         copiedVendors.push("vendor/jsm/loaders/GLTFLoader.js");
+      }
+      if (fs.existsSync(bufferGeoUtilsSrc)) {
+        fs.copyFileSync(bufferGeoUtilsSrc, path.join(vendorJsmUtils, "BufferGeometryUtils.js"));
+        copiedVendors.push("vendor/jsm/utils/BufferGeometryUtils.js");
+      }
+      if (fs.existsSync(skeletonUtilsSrc)) {
+        fs.copyFileSync(skeletonUtilsSrc, path.join(vendorJsmUtils, "SkeletonUtils.js"));
+        copiedVendors.push("vendor/jsm/utils/SkeletonUtils.js");
       }
     }
 

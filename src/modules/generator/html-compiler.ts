@@ -79,13 +79,13 @@ export class HtmlCompiler {
       "category": categoryPack.title,
     };
 
-    // 4. Vendor Scripts
+    // 4. Vendor & Tier Scripts
     let vendorScripts = "";
     if (experienceTier === "CINEMATIC" || experienceTier === "IMMERSIVE_3D") {
-      vendorScripts += `  <script src="./vendor/gsap.min.js"></script>\n  <script src="./vendor/ScrollTrigger.min.js"></script>\n`;
+      vendorScripts += `  <script src="./vendor/gsap.min.js"></script>\n  <script src="./vendor/ScrollTrigger.min.js"></script>\n  <script src="./js/cinematic.js"></script>\n`;
     }
     if (experienceTier === "IMMERSIVE_3D") {
-      vendorScripts += `  <script type="module" src="./vendor/three.module.js"></script>\n`;
+      vendorScripts += `  <script type="module" src="./js/immersive-3d.js"></script>\n`;
     }
 
     return `<!DOCTYPE html>
@@ -111,7 +111,15 @@ export class HtmlCompiler {
   <!-- Structured Data Schema -->
   <script type="application/ld+json">
 ${JSON.stringify(jsonLd, null, 2)}
-  </script>
+  </script>${experienceTier === "IMMERSIVE_3D" ? `\n\n  <!-- Native Browser Import Map for Zero-CDN Standalone ES Modules -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three.module.js",
+      "three/addons/": "./vendor/jsm/"
+    }
+  }
+  </script>` : ""}
 </head>
 <body>
   <!-- Header / Navigation -->
@@ -269,7 +277,30 @@ ${vendorScripts}  <script src="./js/runtime.js"></script>
     </section>`;
       }
 
-      // Default hero (hero-split, hero-editorial, hero-video, hero-cinematic, hero-3d)
+      if (compId === "hero-3d") {
+        return `    <section class="hero-section hero-split hero-3d-section" id="${section.id}">
+      <div class="container">
+        <div class="hero-grid">
+          <div class="hero-content">
+            <span class="badge">${this.escape(categoryPack.title)}</span>
+            <h1>${this.escape(headline)}</h1>
+            <p class="subtitle">${this.escape(subheadline)}</p>
+            <div class="hero-actions">
+              <a href="contact.html" class="btn btn-primary">${this.escape(ctaText)}</a>
+              <a href="services.html" class="btn btn-secondary">${this.escape(ctaSecondary)}</a>
+            </div>
+          </div>
+          <div class="hero-media-wrapper">
+            <div class="canvas-interactive-container" id="scene-3d-canvas-host" data-interactive-3d="true" style="min-height: 420px;">
+              <canvas aria-label="3D Spatial Interactive Hero Scene"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>`;
+      }
+
+      // Default hero (hero-split, hero-editorial, hero-video, hero-cinematic)
       return `    <section class="hero-section hero-split" id="${section.id}">
       <div class="container">
         <div class="hero-grid">
@@ -603,6 +634,9 @@ ${faqs
 
     // 7. ADVANCED FAMILY
     if (compId.startsWith("advanced-")) {
+      const is3D = compId.includes("3d") || compId.includes("spatial");
+      const isSequence = compId.includes("canvas") || compId.includes("frame");
+
       return `    <section class="advanced-section" id="${section.id}">
       <div class="container">
         <div class="section-header">
@@ -610,7 +644,7 @@ ${faqs
           <h2>${this.escape(headline)}</h2>
           <p>${this.escape(subheadline)}</p>
         </div>
-        <div class="canvas-interactive-container" data-interactive-experience="${this.escape(compId)}">
+        <div class="canvas-interactive-container"${is3D ? ' data-interactive-3d="true"' : ""}${isSequence ? ' data-frame-sequence="true" data-total-frames="60"' : ""}>
           <canvas id="canvas-${section.id}" aria-label="${this.escape(headline)} Interactive Canvas"></canvas>
         </div>
       </div>
